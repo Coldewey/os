@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     DIRTY="-dirty"
 fi
@@ -13,10 +15,14 @@ if [ -z "$VERSION" ]; then
     fi
 fi
 
-export VERSION COMMIT
+INITRD=initrd-${VERSION}
+export VERSION COMMIT INITRD
 
 # Suffix
 export SUFFIX=""
 if [ -n "${ARCH}" ] && [ "${ARCH}" != "amd64" ]; then
+    # TODO: why is this not exported?
     SUFFIX="_${ARCH}"
 fi
+
+echo " Building ${VERSION} from ${COMMIT} on ${ARCH}"

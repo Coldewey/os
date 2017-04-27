@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-INSTALLER_IMAGE=rancher/os:v0.7.0
+INSTALLER_IMAGE=rancher/os:v0.7.1
 
 ros config set rancher.network.interfaces.eth1.dhcp false
 if grep eth2 /proc/net/dev; then
@@ -91,6 +91,8 @@ partprobe || true
 # Make boot active
 echo -e "a\n1\nw" | fdisk ${DEV_PREFIX}a || true
 partprobe || true
+
+wait_for_dev ${DEV_PREFIX}a1 ${DEV_PREFIX}a5 ${DEV_PREFIX}a6 ${DEV_PREFIX}a7
 
 if [ "$RAID" = "true" ]; then
     sfdisk --dump ${DEV_PREFIX}a | sfdisk --no-reread ${DEV_PREFIX}b

@@ -1,8 +1,8 @@
 package config
 
 import (
-	log "github.com/Sirupsen/logrus"
 	yaml "github.com/cloudfoundry-incubator/candiedyaml"
+	"github.com/rancher/os/log"
 
 	"strings"
 
@@ -16,7 +16,7 @@ func ChainCfgFuncs(cfg *CloudConfig, cfgFuncs ...CfgFunc) (*CloudConfig, error) 
 		log.Debugf("[%d/%d] Starting", i+1, len(cfgFuncs))
 		var err error
 		if cfg, err = cfgFunc(cfg); err != nil {
-			log.Errorf("Failed [%d/%d] %d%%", i+1, len(cfgFuncs), ((i + 1) * 100 / len(cfgFuncs)))
+			log.Errorf("Failed [%d/%d] %s", i+1, len(cfgFuncs), err)
 			return cfg, err
 		}
 		log.Debugf("[%d/%d] Done %d%%", i+1, len(cfgFuncs), ((i + 1) * 100 / len(cfgFuncs)))
@@ -116,11 +116,12 @@ func getOrSetVal(args string, data map[interface{}]interface{}, value interface{
 	return "", tData
 }
 
-// Replace newlines and colons with random strings
+// Replace newlines, colons, and question marks with random strings
 // This is done to avoid YAML treating these as special characters
 var (
-	newlineMagicString = "9XsJcx6dR5EERYCC"
-	colonMagicString   = "V0Rc21pIVknMm2rr"
+	newlineMagicString      = "9XsJcx6dR5EERYCC"
+	colonMagicString        = "V0Rc21pIVknMm2rr"
+	questionMarkMagicString = "FoPL6JLMAaJqKMJT"
 )
 
 func reverseReplacement(result interface{}) interface{} {
@@ -138,6 +139,7 @@ func reverseReplacement(result interface{}) interface{} {
 	case string:
 		val = strings.Replace(val, newlineMagicString, "\n", -1)
 		val = strings.Replace(val, colonMagicString, ":", -1)
+		val = strings.Replace(val, questionMarkMagicString, "?", -1)
 		return val
 	}
 
@@ -147,6 +149,7 @@ func reverseReplacement(result interface{}) interface{} {
 func unmarshalOrReturnString(value string) (result interface{}) {
 	value = strings.Replace(value, "\n", newlineMagicString, -1)
 	value = strings.Replace(value, ":", colonMagicString, -1)
+	value = strings.Replace(value, "?", questionMarkMagicString, -1)
 	if err := yaml.Unmarshal([]byte(value), &result); err != nil {
 		result = value
 	}
@@ -159,7 +162,9 @@ func parseCmdline(cmdLine string) map[interface{}]interface{} {
 
 outer:
 	for _, part := range strings.Split(cmdLine, " ") {
-		if !strings.HasPrefix(part, "rancher.") {
+		if strings.HasPrefix(part, "cc.") {
+			part = part[3:]
+		} else if !strings.HasPrefix(part, "rancher.") {
 			continue
 		}
 
@@ -193,6 +198,5 @@ outer:
 		}
 	}
 
-	log.Debugf("Input obj %v", result)
 	return result
 }

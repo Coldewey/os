@@ -5,17 +5,65 @@ cd $(dirname $0)/..
 
 source ./scripts/version
 
+BASEDOCKERFILE=./scripts/installer/BaseDockerfile.${ARCH}
 DOCKERFILE=./scripts/installer/Dockerfile.${ARCH}
+ARTIFACTS=./dist/artifacts
 
-if [ ! -f $DOCKERFILE ] || [ ! -f dist/artifacts/vmlinuz ] || [ ! -f dist/artifacts/initrd ]; then
+if \
+      [[ "${ARCH}" != "amd64" ]] || \
+      [ ! -f ${ARTIFACTS}/vmlinuz-${KERNEL_VERSION} ] || \
+      [ ! -f ${ARTIFACTS}/${INITRD} ]; \
+      then
+    echo "Skipping package-installer due to ARM/ARM64 build: ${ARTIFACTS}/vmlinuz-${KERNEL_VERSION}  or ${ARTIFACTS}/${INITRD} not found"
     exit 0
 fi
 
-mkdir -p ./scripts/installer/build
-cp ./dist/artifacts/{initrd,vmlinuz} ./scripts/installer/build
+# build kexec
+pushd .
+cd scripts/installer/kexec
+echo Downloading dapper
+curl -sL https://releases.rancher.com/dapper/latest/dapper-`uname -s`-`uname -m|sed 's/v7l//'` > .dapper.tmp
+chmod +x .dapper.tmp
+./.dapper.tmp -v
+mv .dapper.tmp .dapper
+./.dapper
+popd
+
+
+# TODO maybe extract the creation of the syslinux cfg files
+DIST=$(pwd)/dist
+echo "mkdir -p ${DIST}/boot/isolinux/"
+mkdir -p ${DIST}/boot/isolinux/
+cat scripts/isolinux.cfg | envsubst >         ${DIST}/boot/isolinux/isolinux.cfg
+cat scripts/isolinux_label.cfg | LABEL=${VERSION} envsubst >   ${DIST}/boot/linux-current.cfg
+#cat scripts/isolinux_label.cfg | LABEL=debug APPEND="rancher.debug=true" envsubst >   ${DIST}/boot/linux-previous.cfg
+cat scripts/global.cfg | LABEL=${VERSION} envsubst >   ${DIST}/boot/global.cfg
+
+
+mkdir -p ./scripts/installer/build/boot
+cp ./bin/ros ./scripts/installer/build
 trap "rm -rf ./scripts/installer/build" EXIT
 
-docker build -t ${OS_REPO}/os:${VERSION}${SUFFIX} --build-arg VERSION=${VERSION} -f $DOCKERFILE ./scripts/installer
-docker save -o dist/artifacts/installer.tar ${OS_REPO}/os:${VERSION}${SUFFIX}
-echo ${OS_REPO}/os:${VERSION}${SUFFIX} > dist/images
+# installer base image - can be included in iso
+# TODO: fix the fullinstaller Dockerfile to use the ${VERSION}${SUFFIX}
+docker build \
+    -t ${OS_REPO}/os-installer \
+    --build-arg VERSION=${VERSION} \
+    --build-arg KERNEL_VERSION=${KERNEL_VERSION} \
+    -f $BASEDOCKERFILE \
+    ./scripts/installer
+docker save -o ${ARTIFACTS}/installer.tar ${OS_REPO}/os-installer
+cp $DOCKERFILE ${ARTIFACTS}/
+
+cp ${ARTIFACTS}/${INITRD} ./scripts/installer/build/boot
+cp ${ARTIFACTS}/vmlinuz-${KERNEL_VERSION} ./scripts/installer/build/boot
+cp -r ${DIST}/boot/* ./scripts/installer/build/boot
+cp $DOCKERFILE ./scripts/installer/build/Dockerfile
+# Full installer image with initrd - used for pulling from network
+docker build \
+    -t ${OS_REPO}/os:${VERSION}${SUFFIX} \
+    ./scripts/installer/build
+
+docker save -o ${ARTIFACTS}/fullinstaller.tar ${OS_REPO}/os:${VERSION}${SUFFIX}
+echo ${OS_REPO}/os:${VERSION}${SUFFIX} >> dist/images
 echo Built ${OS_REPO}/os:${VERSION}${SUFFIX}

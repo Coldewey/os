@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 
 	"golang.org/x/net/context"
 
-	log "github.com/Sirupsen/logrus"
 	yaml "github.com/cloudfoundry-incubator/candiedyaml"
+	"github.com/rancher/os/log"
 
 	"github.com/codegangsta/cli"
 	dockerClient "github.com/docker/engine-api/client"
@@ -52,7 +53,7 @@ func osSubcommands() []cli.Command {
 					Usage: "do not reboot after upgrade",
 				},
 				cli.BoolFlag{
-					Name:  "kexec",
+					Name:  "kexec, k",
 					Usage: "reboot using kexec",
 				},
 				cli.StringFlag{
@@ -62,6 +63,10 @@ func osSubcommands() []cli.Command {
 				cli.BoolFlag{
 					Name:  "upgrade-console",
 					Usage: "upgrade console even if persistent",
+				},
+				cli.BoolFlag{
+					Name:  "debug",
+					Usage: "Run installer with debug output",
 				},
 			},
 		},
@@ -80,30 +85,30 @@ func osSubcommands() []cli.Command {
 
 // TODO: this and the getLatestImage should probably move to utils/network and be suitably cached.
 func getImages() (*Images, error) {
-	upgradeUrl, err := getUpgradeUrl()
+	upgradeURL, err := getUpgradeURL()
 	if err != nil {
 		return nil, err
 	}
 
 	var body []byte
 
-	if strings.HasPrefix(upgradeUrl, "/") {
-		body, err = ioutil.ReadFile(upgradeUrl)
+	if strings.HasPrefix(upgradeURL, "/") {
+		body, err = ioutil.ReadFile(upgradeURL)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		u, err := url.Parse(upgradeUrl)
+		u, err := url.Parse(upgradeURL)
 		if err != nil {
 			return nil, err
 		}
 
 		q := u.Query()
-		q.Set("current", config.VERSION)
+		q.Set("current", config.Version)
 		u.RawQuery = q.Encode()
-		upgradeUrl = u.String()
+		upgradeURL = u.String()
 
-		resp, err := http.Get(upgradeUrl)
+		resp, err := http.Get(upgradeURL)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +134,7 @@ func osMetaDataGet(c *cli.Context) error {
 	}
 
 	cfg := config.LoadConfig()
-	runningName := cfg.Rancher.Upgrade.Image + ":" + config.VERSION
+	runningName := cfg.Rancher.Upgrade.Image + ":" + config.Version
 
 	foundRunning := false
 	for i := len(images.Available) - 1; i >= 0; i-- {
@@ -151,7 +156,7 @@ func osMetaDataGet(c *cli.Context) error {
 		fmt.Println(image, local, available, running)
 	}
 	if !foundRunning {
-		fmt.Println(config.VERSION, "running")
+		fmt.Println(config.Version, "running")
 	}
 
 	return nil
@@ -167,6 +172,10 @@ func getLatestImage() (string, error) {
 }
 
 func osUpgrade(c *cli.Context) error {
+	if runtime.GOARCH != "amd64" {
+		log.Fatalf("ros install / upgrade only supported on 'amd64', not '%s'", runtime.GOARCH)
+	}
+
 	image := c.String("image")
 
 	if image == "" {
@@ -182,7 +191,16 @@ func osUpgrade(c *cli.Context) error {
 	if c.Args().Present() {
 		log.Fatalf("invalid arguments %v", c.Args())
 	}
-	if err := startUpgradeContainer(image, c.Bool("stage"), c.Bool("force"), !c.Bool("no-reboot"), c.Bool("kexec"), c.Bool("upgrade-console"), c.String("append")); err != nil {
+	if err := startUpgradeContainer(
+		image,
+		c.Bool("stage"),
+		c.Bool("force"),
+		!c.Bool("no-reboot"),
+		c.Bool("kexec"),
+		c.Bool("upgrade-console"),
+		c.Bool("debug"),
+		c.String("append"),
+	); err != nil {
 		log.Fatal(err)
 	}
 
@@ -190,18 +208,21 @@ func osUpgrade(c *cli.Context) error {
 }
 
 func osVersion(c *cli.Context) error {
-	fmt.Println(config.VERSION)
+	fmt.Println(config.Version)
 	return nil
 }
 
-func startUpgradeContainer(image string, stage, force, reboot, kexec bool, upgradeConsole bool, kernelArgs string) error {
+func startUpgradeContainer(image string, stage, force, reboot, kexec, debug bool, upgradeConsole bool, kernelArgs string) error {
 	command := []string{
 		"-t", "rancher-upgrade",
-		"-r", config.VERSION,
+		"-r", config.Version,
 	}
 
 	if kexec {
-		command = append(command, "-k")
+		command = append(command, "--kexec")
+	}
+	if debug {
+		command = append(command, "--debug")
 	}
 
 	kernelArgs = strings.TrimSpace(kernelArgs)
@@ -218,7 +239,7 @@ func startUpgradeContainer(image string, stage, force, reboot, kexec bool, upgra
 	fmt.Printf("Upgrading to %s\n", image)
 	confirmation := "Continue"
 	imageSplit := strings.Split(image, ":")
-	if len(imageSplit) > 1 && imageSplit[1] == config.VERSION+config.SUFFIX {
+	if len(imageSplit) > 1 && imageSplit[1] == config.Version+config.Suffix {
 		confirmation = fmt.Sprintf("Already at version %s. Continue anyway", imageSplit[1])
 	}
 	if !force && !yes(confirmation) {
@@ -232,7 +253,7 @@ func startUpgradeContainer(image string, stage, force, reboot, kexec bool, upgra
 		Pid:        "host",
 		Image:      image,
 		Labels: map[string]string{
-			config.SCOPE: config.SYSTEM,
+			config.ScopeLabel: config.System,
 		},
 		Command: command,
 	})
@@ -290,7 +311,7 @@ func parseBody(body []byte) (*Images, error) {
 	return update, nil
 }
 
-func getUpgradeUrl() (string, error) {
+func getUpgradeURL() (string, error) {
 	cfg := config.LoadConfig()
-	return cfg.Rancher.Upgrade.Url, nil
+	return cfg.Rancher.Upgrade.URL, nil
 }

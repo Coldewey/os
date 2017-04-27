@@ -1,11 +1,18 @@
 #!/bin/bash
 set -e
 
-cd $(dirname $0)
+cd $(dirname $0)/..
 
-./build
-./test
-./validate
-./prepare
-./package
-./integration-test
+echo BUILD
+./scripts/build
+echo TEST
+./scripts/test
+echo VALIDATE
+./scripts/validate
+echo PREPARE
+./scripts/prepare
+echo PACKAGE
+./scripts/package
+echo INTEGRATION-TEST
+./scripts/integration-test
+

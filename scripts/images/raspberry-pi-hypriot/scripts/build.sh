@@ -6,8 +6,7 @@ cd $(dirname $0)/..
 # create build directory for assembling our image filesystem
 mkdir -p build/{boot,root,basefs} dist
 
-cp assets/raspberrypi-bootloader_*_armhf.deb build/bootloader.deb
-cp assets/rpi3-bootfiles.tar.gz build/rpi3-bootfiles.tar.gz
+cp assets/*.deb build/
 
 #---build SD card image---
 
@@ -30,6 +29,8 @@ fdisk -l build/run.img
 ls -al build/run.img
 
 # partition #1 - Type= c W95 FAT32 (LBA)
+losetup
+losetup -f
 losetup -d /dev/loop0 || /bin/true
 losetup --offset $BOOT_PARTITION_OFFSET --sizelimit $BOOT_PARTITION_BYTES /dev/loop0 build/run.img
 mkfs.vfat -n RancherOS /dev/loop0
@@ -50,17 +51,18 @@ echo "RancherOS: root partition" > build/root/root.txt
 
 # unpack and cleanup the basefs
 #- doing this on a local folder keeps our resulting image clean (no dirty blocks from a delete)
+dpkg-deb -x build/kernel.deb build/basefs
 dpkg-deb -x build/bootloader.deb build/basefs
-# upgrade Raspberry Pi bootfile for RPi3 support
-tar xvzf build/rpi3-bootfiles.tar.gz -C build/basefs/boot
 # remove RPi1 kernel, we only support RPi2 and RPi3 in ARMv7 mode
 rm -fr build/basefs/boot/kernel.img
-rm -fr build/basefs/lib/modules/{4.1.17+,4.1.17-hypriotos+}
+rm -fr build/basefs/lib/modules/{4.4.27+,4.4.27-hypriotos+}
 
 # populate kernel, bootloader and RancherOS rootfs
 cp -R build/basefs/* build/root
 tar -xf assets/rootfs_arm.tar.gz -C build/root
-echo "+dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 cgroup-enable=memory swapaccount=1 elevator=deadline rootwait console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty0 rancher.password=rancher rw init=/init" > build/root/boot/cmdline.txt
+echo "+dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 cgroup-enable=memory swapaccount=1 elevator=deadline rootwait console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty0 rancher.password=rancher rancher.autologin=ttyAMA0 rw init=/init" > build/root/boot/cmdline.txt
+# enable serial console mode for rpi3
+echo "enable_uart=1" > build/root/boot/config.txt
 
 # show details
 tree -a -L 3 build/root

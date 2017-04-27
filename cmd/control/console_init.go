@@ -11,10 +11,10 @@ import (
 	"strings"
 	"syscall"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/rancher/os/cmd/cloudinitexecute"
 	"github.com/rancher/os/config"
+	"github.com/rancher/os/log"
 	"github.com/rancher/os/util"
 )
 
@@ -30,37 +30,51 @@ type symlink struct {
 	oldname, newname string
 }
 
+func ConsoleInitMain() {
+	if err := consoleInitFunc(); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func consoleInitAction(c *cli.Context) error {
+	return consoleInitFunc()
+}
+
+func createHomeDir(homedir string, uid, gid int) {
+	if _, err := os.Stat(homedir); os.IsNotExist(err) {
+		if err := os.MkdirAll(homedir, 0755); err != nil {
+			log.Error(err)
+		}
+		if err := os.Chown(homedir, uid, gid); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func consoleInitFunc() error {
 	cfg := config.LoadConfig()
 
-	if _, err := os.Stat(rancherHome); os.IsNotExist(err) {
-		if err := os.MkdirAll(rancherHome, 0755); err != nil {
-			log.Error(err)
-		}
-		if err := os.Chown(rancherHome, 1100, 1100); err != nil {
-			log.Error(err)
-		}
+	// Now that we're booted, stop writing debug messages to the console
+	cmd := exec.Command("sudo", "dmesg", "--console-off")
+	if err := cmd.Run(); err != nil {
+		log.Error(err)
 	}
 
-	if _, err := os.Stat(dockerHome); os.IsNotExist(err) {
-		if err := os.MkdirAll(dockerHome, 0755); err != nil {
-			log.Error(err)
-		}
-		if err := os.Chown(dockerHome, 1101, 1101); err != nil {
-			log.Error(err)
-		}
-	}
+	createHomeDir(rancherHome, 1100, 1100)
+	createHomeDir(dockerHome, 1101, 1101)
 
 	password := config.GetCmdline("rancher.password")
-	cmd := exec.Command("chpasswd")
-	cmd.Stdin = strings.NewReader(fmt.Sprint("rancher:", password))
-	if err := cmd.Run(); err != nil {
-		log.Error(err)
-	}
+	if password != "" {
+		cmd := exec.Command("chpasswd")
+		cmd.Stdin = strings.NewReader(fmt.Sprint("rancher:", password))
+		if err := cmd.Run(); err != nil {
+			log.Error(err)
+		}
 
-	cmd = exec.Command("bash", "-c", `sed -E -i 's/(rancher:.*:).*(:.*:.*:.*:.*:.*:.*)$/\1\2/' /etc/shadow`)
-	if err := cmd.Run(); err != nil {
-		log.Error(err)
+		cmd = exec.Command("bash", "-c", `sed -E -i 's/(rancher:.*:).*(:.*:.*:.*:.*:.*:.*)$/\1\2/' /etc/shadow`)
+		if err := cmd.Run(); err != nil {
+			log.Error(err)
+		}
 	}
 
 	if err := setupSSH(cfg); err != nil {
@@ -75,18 +89,17 @@ func consoleInitAction(c *cli.Context) error {
 		log.Error(err)
 	}
 
-	if err := writeOsRelease(); err != nil {
-		log.Error(err)
-	}
-
 	for _, link := range []symlink{
 		{"/var/lib/rancher/engine/docker", "/usr/bin/docker"},
+		{"/var/lib/rancher/engine/docker-init", "/usr/bin/docker-init"},
 		{"/var/lib/rancher/engine/docker-containerd", "/usr/bin/docker-containerd"},
 		{"/var/lib/rancher/engine/docker-containerd-ctr", "/usr/bin/docker-containerd-ctr"},
 		{"/var/lib/rancher/engine/docker-containerd-shim", "/usr/bin/docker-containerd-shim"},
 		{"/var/lib/rancher/engine/dockerd", "/usr/bin/dockerd"},
 		{"/var/lib/rancher/engine/docker-proxy", "/usr/bin/docker-proxy"},
 		{"/var/lib/rancher/engine/docker-runc", "/usr/bin/docker-runc"},
+		{"/usr/share/ros/os-release", "/usr/lib/os-release"},
+		{"/usr/share/ros/os-release", "/etc/os-release"},
 	} {
 		syscall.Unlink(link.newname)
 		if err := os.Symlink(link.oldname, link.newname); err != nil {
@@ -94,8 +107,18 @@ func consoleInitAction(c *cli.Context) error {
 		}
 	}
 
-	cmd = exec.Command("bash", "-c", `echo 'RancherOS \n \l' > /etc/issue`)
-	if err := cmd.Run(); err != nil {
+	// font backslashes need to be escaped for when issue is output! (but not the others..)
+	if err := ioutil.WriteFile("/etc/issue", []byte(`
+               ,        , ______                 _                 _____ _____TM
+  ,------------|'------'| | ___ \\               | |               /  _  /  ___|
+ / .           '-'    |-  | |_/ /__ _ _ __   ___| |__   ___ _ __  | | | \\ '--.
+ \\/|             |    |   |    // _' | '_ \\ / __| '_ \\ / _ \\ '__' | | | |'--. \\
+   |   .________.'----'   | |\\ \\ (_| | | | | (__| | | |  __/ |    | \\_/ /\\__/ /
+   |   |        |   |     \\_| \\_\\__,_|_| |_|\\___|_| |_|\\___|_|     \\___/\\____/
+   \\___/        \\___/     \s \r
+
+         RancherOS `+config.Version+` \n \l
+         `), 0644); err != nil {
 		log.Error(err)
 	}
 
@@ -212,33 +235,6 @@ func modifySshdConfig() error {
 	return ioutil.WriteFile("/etc/ssh/sshd_config", []byte(sshdConfigString), 0644)
 }
 
-func writeOsRelease() error {
-	idLike := "busybox"
-	if osRelease, err := ioutil.ReadFile("/etc/os-release"); err == nil {
-		for _, line := range strings.Split(string(osRelease), "\n") {
-			if strings.HasPrefix(line, "ID_LIKE") {
-				split := strings.Split(line, "ID_LIKE")
-				if len(split) > 1 {
-					idLike = split[1]
-				}
-			}
-		}
-	}
-
-	return ioutil.WriteFile("/etc/os-release", []byte(fmt.Sprintf(`
-NAME="RancherOS"
-VERSION=%s
-ID=rancheros
-ID_LIKE=%s
-VERSION_ID=%s
-PRETTY_NAME="RancherOS %s"
-HOME_URL=
-SUPPORT_URL=
-BUG_REPORT_URL=
-BUILD_ID=
-`, config.VERSION, idLike, config.VERSION, config.VERSION)), 0644)
-}
-
 func setupSSH(cfg *config.CloudConfig) error {
 	for _, keyType := range []string{"rsa", "dsa", "ecdsa", "ed25519"} {
 		outputFile := fmt.Sprintf("/etc/ssh/ssh_host_%s_key", keyType)
@@ -248,8 +244,8 @@ func setupSSH(cfg *config.CloudConfig) error {
 			continue
 		}
 
-		saved, savedExists := cfg.Rancher.Ssh.Keys[keyType]
-		pub, pubExists := cfg.Rancher.Ssh.Keys[keyType+"-pub"]
+		saved, savedExists := cfg.Rancher.SSH.Keys[keyType]
+		pub, pubExists := cfg.Rancher.SSH.Keys[keyType+"-pub"]
 
 		if savedExists && pubExists {
 			// TODO check permissions

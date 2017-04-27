@@ -11,7 +11,8 @@
     "hostname": {"type": "string"},
     "mounts": {"type": "array"},
     "rancher": {"$ref": "#/definitions/rancher_config"},
-    "runcmd": {"type": "array"}
+    "runcmd": {"type": "array"},
+    "bootcmd": {"type": "array"}
   },
 
   "definitions": {
@@ -23,6 +24,7 @@
       "properties": {
         "console": {"type": "string"},
         "environment": {"type": "object"},
+        "cloud_init_services": {"type": "object"},
         "services": {"type": "object"},
         "bootstrap": {"type": "object"},
         "autoformat": {"type": "object"},
@@ -59,6 +61,7 @@
 
       "properties": {
         "encoding": {"type": "string"},
+        "container": {"type": "string"},
         "content": {"type": "string"},
         "owner": {"type": "string"},
         "path": {"type": "string"},
@@ -128,7 +131,8 @@
         "restart": {"type": ["boolean", "null"]},
         "selinux_enabled": {"type": ["boolean", "null"]},
         "storage_driver": {"type": "string"},
-        "userland_proxy": {"type": ["boolean", "null"]}
+        "userland_proxy": {"type": ["boolean", "null"]},
+        "insecure_registry": {"$ref": "#/definitions/list_of_strings"}
       }
     },
 

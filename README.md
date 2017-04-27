@@ -14,43 +14,52 @@ it would really be bad if somebody did `docker rm -f $(docker ps -qa)` and delet
 
 ## Latest Release
 
-**v0.7.0 - Docker 1.12.1**
+**v1.0.1 - Docker 17.03.1-ce - Linux 4.9.24**
 
 ### ISO
 
-https://releases.rancher.com/os/latest/rancheros.iso  
-https://releases.rancher.com/os/v0.7.0/rancheros.iso  
+- https://releases.rancher.com/os/latest/rancheros.iso
+- https://releases.rancher.com/os/v1.0.1/rancheros.iso
 
 ### Additional Downloads
 
-#### Latest
+#### Latest Links
 
 * https://releases.rancher.com/os/latest/initrd
+* https://releases.rancher.com/os/latest/initrd-v1.0.1
 * https://releases.rancher.com/os/latest/iso-checksums.txt
 * https://releases.rancher.com/os/latest/rancheros-openstack.img
-* https://releases.rancher.com/os/latest/rancheros-raspberry-pi.zip
+* https://releases.rancher.com/os/latest/rancheros.ipxe
 * https://releases.rancher.com/os/latest/rancheros.iso
-* https://releases.rancher.com/os/latest/rancheros-v0.7.0.tar.gz
-* https://releases.rancher.com/os/latest/rootfs_arm.tar.gz
-* https://releases.rancher.com/os/latest/rootfs_arm64.tar.gz
+* https://releases.rancher.com/os/latest/rancheros-v1.0.1.tar.gz
 * https://releases.rancher.com/os/latest/rootfs.tar.gz
 * https://releases.rancher.com/os/latest/vmlinuz
+* https://releases.rancher.com/os/latest/vmlinuz-4.9.24-rancher
 
-#### v0.7.0
+#### v1.0.1 Links
 
-* https://releases.rancher.com/os/v0.7.0/initrd
-* https://releases.rancher.com/os/v0.7.0/iso-checksums.txt
-* https://releases.rancher.com/os/v0.7.0/rancheros-openstack.img
-* https://releases.rancher.com/os/v0.7.0/rancheros-raspberry-pi.zip
-* https://releases.rancher.com/os/v0.7.0/rancheros.iso
-* https://releases.rancher.com/os/v0.7.0/rancheros-v0.7.0.tar.gz
-* https://releases.rancher.com/os/v0.7.0/rootfs_arm.tar.gz
-* https://releases.rancher.com/os/v0.7.0/rootfs_arm64.tar.gz
-* https://releases.rancher.com/os/v0.7.0/rootfs.tar.gz
-* https://releases.rancher.com/os/v0.7.0/vmlinuz
+* https://releases.rancher.com/os/v1.0.1/initrd
+* https://releases.rancher.com/os/v1.0.1/initrd-v1.0.1
+* https://releases.rancher.com/os/v1.0.1/iso-checksums.txt
+* https://releases.rancher.com/os/v1.0.1/rancheros-openstack.img
+* https://releases.rancher.com/os/v1.0.1/rancheros.ipxe
+* https://releases.rancher.com/os/v1.0.1/rancheros.iso
+* https://releases.rancher.com/os/v1.0.1/rancheros-v1.0.1.tar.gz
+* https://releases.rancher.com/os/v1.0.1/rootfs.tar.gz
+* https://releases.rancher.com/os/v1.0.1/vmlinuz
+* https://releases.rancher.com/os/v1.0.1/vmlinuz-4.9.24-rancher
 
+#### v1.0.0 Links - updates coming soon
 
-**Note**: you can use `http` instead of `https` in the above URLs, e.g. for iPXE.  
+* https://releases.rancher.com/os/latest/rootfs_arm.tar.gz
+* https://releases.rancher.com/os/latest/rootfs_arm64.tar.gz
+* https://releases.rancher.com/os/latest/rancheros-raspberry-pi.zip
+
+* https://releases.rancher.com/os/v1.0.0/rootfs_arm.tar.gz
+* https://releases.rancher.com/os/v1.0.0/rootfs_arm64.tar.gz
+* https://releases.rancher.com/os/v1.0.0/rancheros-raspberry-pi.zip
+
+**Note**: you can use `http` instead of `https` in the above URLs, e.g. for iPXE.
 
 ### Amazon
 
@@ -60,24 +69,27 @@ SSH keys are added to the **`rancher`** user, so you must log in using the **ran
 
 Region | Type | AMI |
 -------|------|------
-ap-northeast-1 | HVM |  [ami-dfe442be](https://console.aws.amazon.com/ec2/home?region=ap-northeast-1#launchInstanceWizard:ami=ami-dfe442be)
-ap-northeast-2 | HVM |  [ami-2ff82c41](https://console.aws.amazon.com/ec2/home?region=ap-northeast-2#launchInstanceWizard:ami=ami-2ff82c41)
-ap-south-1 | HVM |  [ami-0d631762](https://console.aws.amazon.com/ec2/home?region=ap-south-1#launchInstanceWizard:ami=ami-0d631762)
-ap-southeast-1 | HVM |  [ami-8249efe1](https://console.aws.amazon.com/ec2/home?region=ap-southeast-1#launchInstanceWizard:ami=ami-8249efe1)
-ap-southeast-2 | HVM |  [ami-cd5568ae](https://console.aws.amazon.com/ec2/home?region=ap-southeast-2#launchInstanceWizard:ami=ami-cd5568ae)
-eu-central-1 | HVM |  [ami-7720d918](https://console.aws.amazon.com/ec2/home?region=eu-central-1#launchInstanceWizard:ami=ami-7720d918)
-eu-west-1 | HVM |  [ami-c5f1beb6](https://console.aws.amazon.com/ec2/home?region=eu-west-1#launchInstanceWizard:ami=ami-c5f1beb6)
-sa-east-1 | HVM |  [ami-bf168bd3](https://console.aws.amazon.com/ec2/home?region=sa-east-1#launchInstanceWizard:ami=ami-bf168bd3)
-us-east-1 | HVM |  [ami-f3bdede4](https://console.aws.amazon.com/ec2/home?region=us-east-1#launchInstanceWizard:ami=ami-f3bdede4)
-us-east-2 | HVM |  [ami-a83f65cd](https://console.aws.amazon.com/ec2/home?region=us-east-1#launchInstanceWizard:ami=ami-a83f65cd)
-us-west-1 | HVM |  [ami-04f3bb64](https://console.aws.amazon.com/ec2/home?region=us-west-1#launchInstanceWizard:ami=ami-04f3bb64)
-us-west-2 | HVM |  [ami-b506a3d5](https://console.aws.amazon.com/ec2/home?region=us-west-2#launchInstanceWizard:ami=ami-b506a3d5)
+ap-south-1 | HVM | [ami-9b4e3cf4](https://ap-south-1.console.aws.amazon.com/ec2/home?region=ap-south-1#launchInstanceWizard:ami=ami-9b4e3cf4)
+eu-west-2 | HVM | [ami-d8eafebc](https://eu-west-2.console.aws.amazon.com/ec2/home?region=eu-west-2#launchInstanceWizard:ami=ami-d8eafebc)
+eu-west-1 | HVM | [ami-75cbcb13](https://eu-west-1.console.aws.amazon.com/ec2/home?region=eu-west-1#launchInstanceWizard:ami=ami-75cbcb13)
+ap-northeast-2 | HVM | [ami-797cae17](https://ap-northeast-2.console.aws.amazon.com/ec2/home?region=ap-northeast-2#launchInstanceWizard:ami=ami-797cae17)
+ap-northeast-1 | HVM | [ami-e499b383](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#launchInstanceWizard:ami=ami-e499b383)
+sa-east-1 | HVM | [ami-f4cca198](https://sa-east-1.console.aws.amazon.com/ec2/home?region=sa-east-1#launchInstanceWizard:ami=ami-f4cca198)
+ca-central-1 | HVM | [ami-59b60a3d](https://ca-central-1.console.aws.amazon.com/ec2/home?region=ca-central-1#launchInstanceWizard:ami=ami-59b60a3d)
+ap-southeast-1 | HVM | [ami-be853edd](https://ap-southeast-1.console.aws.amazon.com/ec2/home?region=ap-southeast-1#launchInstanceWizard:ami=ami-be853edd)
+ap-southeast-2 | HVM | [ami-e2dcd481](https://ap-southeast-2.console.aws.amazon.com/ec2/home?region=ap-southeast-2#launchInstanceWizard:ami=ami-e2dcd481)
+eu-central-1 | HVM | [ami-ef0bd780](https://eu-central-1.console.aws.amazon.com/ec2/home?region=eu-central-1#launchInstanceWizard:ami=ami-ef0bd780)
+us-east-1 | HVM | [ami-5c5a3f4a](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#launchInstanceWizard:ami=ami-5c5a3f4a)
+us-east-2 | HVM | [ami-902304f5](https://us-east-2.console.aws.amazon.com/ec2/home?region=us-east-2#launchInstanceWizard:ami=ami-902304f5)
+us-west-1 | HVM | [ami-4a73542a](https://us-west-1.console.aws.amazon.com/ec2/home?region=us-west-1#launchInstanceWizard:ami=ami-4a73542a)
+us-west-2 | HVM | [ami-7caa341c](https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#launchInstanceWizard:ami=ami-7caa341c)
+
 
 ### Google Compute Engine
 
 We are providing a disk image that users can download and import for use in Google Compute Engine. The image can be obtained from the release artifacts for RancherOS.
 
-[Download Image](https://github.com/rancher/os/releases/download/v0.6.1/rancheros-v0.6.1.tar.gz)
+[Download Image](https://github.com/rancher/os/releases/download/v1.0.0/rancheros-v1.0.0.tar.gz)
 
 Please follow the directions at our [docs to launch in GCE](http://docs.rancher.com/os/running-rancheros/cloud/gce/).
 
@@ -88,14 +100,15 @@ Please refer to our [RancherOS Documentation](http://docs.rancher.com/os/) websi
 ## Support, Discussion, and Community
 If you need any help with RancherOS or Rancher, please join us at either our [Rancher forums](http://forums.rancher.com) or [#rancher IRC channel](http://webchat.freenode.net/?channels=rancher) where most of our team hangs out at.
 
-For issues relating to security, please email security@rancher.com instead of posting an open issue in Github.
+For security issues, please email security@rancher.com instead of posting a public issue in GitHub.  You may (but are not required to) use the GPG key located on [Keybase](https://keybase.io/rancher).
+
 
 Please submit any **RancherOS** bugs, issues, and feature requests to [rancher/os](//github.com/rancher/os/issues).
 
 Please submit any **Rancher** bugs, issues, and feature requests to [rancher/rancher](//github.com/rancher/rancher/issues).
 
 #License
-Copyright (c) 2014-2016 [Rancher Labs, Inc.](http://rancher.com)
+Copyright (c) 2014-2017 [Rancher Labs, Inc.](http://rancher.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

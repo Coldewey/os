@@ -13,7 +13,8 @@ var schema = `{
     "hostname": {"type": "string"},
     "mounts": {"type": "array"},
     "rancher": {"$ref": "#/definitions/rancher_config"},
-    "runcmd": {"type": "array"}
+    "runcmd": {"type": "array"},
+    "bootcmd": {"type": "array"}
   },
 
   "definitions": {
@@ -25,6 +26,7 @@ var schema = `{
       "properties": {
         "console": {"type": "string"},
         "environment": {"type": "object"},
+        "cloud_init_services": {"type": "object"},
         "services": {"type": "object"},
         "bootstrap": {"type": "object"},
         "autoformat": {"type": "object"},
@@ -61,6 +63,7 @@ var schema = `{
 
       "properties": {
         "encoding": {"type": "string"},
+        "container": {"type": "string"},
         "content": {"type": "string"},
         "owner": {"type": "string"},
         "path": {"type": "string"},
@@ -130,7 +133,8 @@ var schema = `{
         "restart": {"type": ["boolean", "null"]},
         "selinux_enabled": {"type": ["boolean", "null"]},
         "storage_driver": {"type": "string"},
-        "userland_proxy": {"type": ["boolean", "null"]}
+        "userland_proxy": {"type": ["boolean", "null"]},
+        "insecure_registry": {"$ref": "#/definitions/list_of_strings"}
       }
     },
 

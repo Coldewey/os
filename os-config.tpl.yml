@@ -6,7 +6,7 @@ rancher:
     hostname: {{.HOSTNAME_DEFAULT}}
     {{if eq "amd64" .ARCH -}}
     docker:
-      engine: docker-1.12.1
+      engine: docker-17.03.1-ce
     {{else -}}
     docker:
       engine: docker-1.11.2
@@ -30,6 +30,30 @@ rancher:
       - /lib/firmware:/lib/firmware
       - /usr/bin/ros:/usr/bin/ros:ro
       - /usr/share/ros:/usr/share/ros:ro
+      - /var/lib/rancher:/var/lib/rancher:ro
+  cloud_init_services:
+    cloud-init:
+      image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
+      command: cloud-init-save
+      labels:
+        io.rancher.os.detach: "false"
+        io.rancher.os.scope: system
+      log_driver: json-file
+      net: host
+      uts: host
+      pid: host
+      ipc: host
+      privileged: true
+      volumes:
+      - /dev:/host/dev
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt.rancher
+      - /lib/modules:/lib/modules
+      - /lib/firmware:/lib/firmware
+      - /usr/bin/ros:/usr/bin/ros:ro
+      - /usr/bin/ros:/usr/bin/cloud-init-save
+      - /usr/share/ros:/usr/share/ros:ro
+      - /var/lib/rancher:/var/lib/rancher
+      - /var/lib/rancher/conf:/var/lib/rancher/conf
   bootstrap_docker:
     bridge: none
     storage_driver: overlay
@@ -78,20 +102,8 @@ rancher:
       volumes_from:
       - container-data-volumes
       - command-volumes
+      - media-volumes
       - user-volumes
-      - system-volumes
-    cloud-init:
-      image: {{.OS_REPO}}/os-cloudinit:{{.VERSION}}{{.SUFFIX}}
-      labels:
-        io.rancher.os.detach: "false"
-        io.rancher.os.reloadconfig: "true"
-        io.rancher.os.scope: system
-        io.rancher.os.after: ntp
-      net: host
-      uts: host
-      privileged: true
-      volumes_from:
-      - command-volumes
       - system-volumes
     cloud-init-execute:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
@@ -99,7 +111,7 @@ rancher:
       labels:
         io.rancher.os.detach: "false"
         io.rancher.os.scope: system
-        io.rancher.os.after: cloud-init
+        io.rancher.os.after: ntp
       net: host
       uts: host
       privileged: true
@@ -107,22 +119,6 @@ rancher:
       - system-volumes
       volumes:
       - /usr/bin/ros:/usr/bin/ros
-      - /usr/bin/ros:/usr/bin/cloud-init-execute
-    cloud-init-pre:
-      image: {{.OS_REPO}}/os-cloudinit:{{.VERSION}}{{.SUFFIX}}
-      environment:
-      - CLOUD_INIT_NETWORK=false
-      labels:
-        io.rancher.os.detach: "false"
-        io.rancher.os.reloadconfig: "true"
-        io.rancher.os.scope: system
-        io.rancher.os.after: udev
-      net: host
-      uts: host
-      privileged: true
-      volumes_from:
-      - command-volumes
-      - system-volumes
     command-volumes:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
       command: echo
@@ -134,24 +130,13 @@ rancher:
       privileged: true
       read_only: true
       volumes:
-      - /usr/bin/ros:/usr/bin/dockerlaunch:ro
-      - /usr/bin/ros:/usr/bin/system-docker:ro
-      - /usr/bin/ros:/sbin/poweroff:ro
-      - /usr/bin/ros:/sbin/reboot:ro
-      - /usr/bin/ros:/sbin/halt:ro
-      - /usr/bin/ros:/sbin/shutdown:ro
-      - /usr/bin/ros:/usr/bin/respawn:ro
       - /usr/bin/ros:/usr/bin/ros:ro
-      - /usr/bin/ros:/usr/bin/cloud-init-execute:ro
-      - /usr/bin/ros:/usr/bin/cloud-init-save:ro
-      - /usr/bin/ros:/usr/sbin/netconf:ro
-      - /usr/bin/ros:/usr/sbin/wait-for-docker:ro
     console:
       image: {{.OS_REPO}}/os-console:{{.VERSION}}{{.SUFFIX}}
       command: ros console-init
       labels:
         io.rancher.os.scope: system
-        io.rancher.os.after: network
+        io.rancher.os.after: cloud-init-execute
         io.docker.compose.rebuild: always
         io.rancher.os.console: default
       net: host
@@ -164,8 +149,6 @@ rancher:
       - all-volumes
       volumes:
       - /usr/bin/iptables:/sbin/iptables:ro
-      - /media:/media:shared
-      - /mnt:/mnt:shared
     container-data-volumes:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
       command: echo
@@ -178,12 +161,26 @@ rancher:
       read_only: true
       volumes:
       - /var/lib/docker:/var/lib/docker
-    network-pre:
+    media-volumes:
+      image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
+      command: echo
+      labels:
+        io.rancher.os.createonly: "true"
+        io.rancher.os.scope: system
+      log_driver: json-file
+      net: none
+      privileged: true
+      read_only: true
+      volumes:
+      - /media:/media:shared
+      - /mnt:/mnt:shared
+    network:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
       command: netconf
       labels:
         io.rancher.os.scope: system
-        io.rancher.os.after: cloud-init-pre
+        io.rancher.os.after: udev
+        io.rancher.os.reloadconfig: "true"
       net: host
       uts: host
       pid: host
@@ -191,25 +188,14 @@ rancher:
       volumes_from:
       - command-volumes
       - system-volumes
-    network:
-      image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
-      command: netconf --stop-network-pre
-      labels:
-        io.rancher.os.scope: system
-        io.rancher.os.after: cloud-init-execute
-      net: host
-      uts: host
-      pid: host
-      privileged: true
-      volumes_from:
-      - command-volumes
-      - system-volumes
+      volumes:
+      - /usr/bin/iptables:/sbin/iptables:ro
     ntp:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
       command: ntpd --nofork -g
       labels:
         io.rancher.os.scope: system
-        io.rancher.os.after: network-pre
+        io.rancher.os.after: network
       net: host
       uts: host
       privileged: true
@@ -308,7 +294,7 @@ rancher:
       - /opt:/opt
     docker:
       {{if eq "amd64" .ARCH -}}
-      image: {{.OS_REPO}}/os-docker:1.12.1{{.SUFFIX}}
+      image: {{.OS_REPO}}/os-docker:17.03.1{{.SUFFIX}}
       {{else -}}
       image: {{.OS_REPO}}/os-docker:1.11.2{{.SUFFIX}}
       {{end -}}
@@ -350,7 +336,7 @@ rancher:
     image: {{.OS_REPO}}/os
   docker:
     {{if eq "amd64" .ARCH -}}
-    engine: docker-1.12.1
+    engine: docker-17.03.1-ce
     {{else -}}
     engine: docker-1.11.2
     {{end -}}

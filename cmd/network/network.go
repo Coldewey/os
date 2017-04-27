@@ -1,62 +1,34 @@
 package network
 
 import (
-	"flag"
-	"os"
-
-	"golang.org/x/net/context"
-
-	log "github.com/Sirupsen/logrus"
+	"github.com/rancher/os/log"
 
 	"github.com/docker/libnetwork/resolvconf"
 	"github.com/rancher/os/config"
-	"github.com/rancher/os/docker"
 	"github.com/rancher/os/hostname"
 	"github.com/rancher/os/netconf"
 )
 
-var (
-	stopNetworkPre bool
-	flags          *flag.FlagSet
-)
-
-func init() {
-	flags = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-	flags.BoolVar(&stopNetworkPre, "stop-network-pre", false, "")
-}
-
 func Main() {
-	flags.Parse(os.Args[1:])
-
-	log.Infof("Running network: stop-network-pre=%v", stopNetworkPre)
-
-	if stopNetworkPre {
-		client, err := docker.NewSystemClient()
-		if err != nil {
-			log.Error(err)
-		}
-
-		err = client.ContainerStop(context.Background(), "network-pre", 10)
-		if err != nil {
-			log.Error(err)
-		}
-
-		_, err = client.ContainerWait(context.Background(), "network-pre")
-		if err != nil {
-			log.Error(err)
-		}
-	}
+	log.InitLogger()
 
 	cfg := config.LoadConfig()
+	ApplyNetworkConfig(cfg)
 
-	nameservers := cfg.Rancher.Network.Dns.Nameservers
-	search := cfg.Rancher.Network.Dns.Search
-	userSetDns := len(nameservers) > 0 || len(search) > 0
-	if !userSetDns {
-		nameservers = cfg.Rancher.Defaults.Network.Dns.Nameservers
-		search = cfg.Rancher.Defaults.Network.Dns.Search
+	select {}
+}
+
+func ApplyNetworkConfig(cfg *config.CloudConfig) {
+	log.Infof("Apply Network Config")
+	nameservers := cfg.Rancher.Network.DNS.Nameservers
+	search := cfg.Rancher.Network.DNS.Search
+	userSetDNS := len(nameservers) > 0 || len(search) > 0
+	if !userSetDNS {
+		nameservers = cfg.Rancher.Defaults.Network.DNS.Nameservers
+		search = cfg.Rancher.Defaults.Network.DNS.Search
 	}
 
+	// TODO: don't write to the file if nameservers is still empty
 	if _, err := resolvconf.Build("/etc/resolv.conf", nameservers, search, nil); err != nil {
 		log.Error(err)
 	}
@@ -69,14 +41,15 @@ func Main() {
 		log.Error(err)
 	}
 
+	// TODO: seems wrong to do this outside netconf
 	userSetHostname := cfg.Hostname != ""
-	if err := netconf.RunDhcp(&cfg.Rancher.Network, !userSetHostname, !userSetDns); err != nil {
+	log.Infof("Apply Network Config RunDhcp")
+	if err := netconf.RunDhcp(&cfg.Rancher.Network, !userSetHostname, !userSetDNS); err != nil {
 		log.Error(err)
 	}
 
+	log.Infof("Apply Network Config SyncHostname")
 	if err := hostname.SyncHostname(); err != nil {
 		log.Error(err)
 	}
-
-	select {}
 }

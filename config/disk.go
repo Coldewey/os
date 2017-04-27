@@ -4,15 +4,17 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	yaml "github.com/cloudfoundry-incubator/candiedyaml"
-	"github.com/coreos/coreos-cloudinit/datasource"
-	"github.com/coreos/coreos-cloudinit/initialize"
 	"github.com/docker/engine-api/types"
 	composeConfig "github.com/docker/libcompose/config"
+	"github.com/rancher/os/config/cloudinit/datasource"
+	"github.com/rancher/os/config/cloudinit/initialize"
+	"github.com/rancher/os/log"
 	"github.com/rancher/os/util"
 )
 
@@ -31,27 +33,33 @@ func ReadConfig(bytes []byte, substituteMetadataVars bool, files ...string) (*Cl
 	return c, nil
 }
 
-func loadRawDiskConfig(full bool) map[interface{}]interface{} {
+func loadRawDiskConfig(dirPrefix string, full bool) map[interface{}]interface{} {
 	var rawCfg map[interface{}]interface{}
 	if full {
 		rawCfg, _ = readConfigs(nil, true, false, OsConfigFile, OemConfigFile)
 	}
 
-	files := append(CloudConfigDirFiles(), CloudConfigFile)
+	files := CloudConfigDirFiles(dirPrefix)
+	files = append(files, path.Join(dirPrefix, CloudConfigFile))
 	additionalCfgs, _ := readConfigs(nil, true, false, files...)
 
 	return util.Merge(rawCfg, additionalCfgs)
 }
 
-func loadRawConfig() map[interface{}]interface{} {
-	rawCfg := loadRawDiskConfig(true)
+func loadRawConfig(dirPrefix string, full bool) map[interface{}]interface{} {
+	rawCfg := loadRawDiskConfig(dirPrefix, full)
 	rawCfg = util.Merge(rawCfg, readCmdline())
+	rawCfg = util.Merge(rawCfg, readElidedCmdline(rawCfg))
 	rawCfg = applyDebugFlags(rawCfg)
 	return mergeMetadata(rawCfg, readMetadata())
 }
 
 func LoadConfig() *CloudConfig {
-	rawCfg := loadRawConfig()
+	return LoadConfigWithPrefix("")
+}
+
+func LoadConfigWithPrefix(dirPrefix string) *CloudConfig {
+	rawCfg := loadRawConfig(dirPrefix, true)
 
 	cfg := &CloudConfig{}
 	if err := util.Convert(rawCfg, cfg); err != nil {
@@ -63,8 +71,39 @@ func LoadConfig() *CloudConfig {
 	return cfg
 }
 
-func CloudConfigDirFiles() []string {
-	files, err := ioutil.ReadDir(CloudConfigDir)
+func Insert(m interface{}, args ...interface{}) interface{} {
+	// TODO: move to util.go
+	if len(args)%2 != 0 {
+		panic("must have pairs of keys and values")
+	}
+	mv := reflect.ValueOf(m)
+	if mv.IsNil() {
+		mv = reflect.MakeMap(mv.Type())
+	}
+	for i := 0; i < len(args); i += 2 {
+		mv.SetMapIndex(reflect.ValueOf(args[i]), reflect.ValueOf(args[i+1]))
+	}
+	return mv.Interface()
+}
+
+func SaveInitCmdline(cmdLineArgs string) {
+	elidedCfg := parseCmdline(cmdLineArgs)
+
+	env := Insert(make(map[interface{}]interface{}), interface{}("EXTRA_CMDLINE"), interface{}(cmdLineArgs))
+	rancher := Insert(make(map[interface{}]interface{}), interface{}("environment"), env)
+	newCfg := Insert(elidedCfg, interface{}("rancher"), rancher)
+	// make it easy for readElidedCmdline(rawCfg)
+	newCfg = Insert(newCfg, interface{}("EXTRA_CMDLINE"), interface{}(cmdLineArgs))
+
+	if err := WriteToFile(newCfg, CloudConfigInitFile); err != nil {
+		log.Errorf("Failed to write init-cmdline config: %s", err)
+	}
+}
+
+func CloudConfigDirFiles(dirPrefix string) []string {
+	cloudConfigDir := path.Join(dirPrefix, CloudConfigDir)
+
+	files, err := ioutil.ReadDir(cloudConfigDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// do nothing
@@ -78,7 +117,7 @@ func CloudConfigDirFiles() []string {
 	var finalFiles []string
 	for _, file := range files {
 		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
-			finalFiles = append(finalFiles, path.Join(CloudConfigDir, file.Name()))
+			finalFiles = append(finalFiles, path.Join(cloudConfigDir, file.Name()))
 		}
 	}
 
@@ -152,8 +191,21 @@ func readMetadata() datasource.Metadata {
 	return metadata
 }
 
+func readElidedCmdline(rawCfg map[interface{}]interface{}) map[interface{}]interface{} {
+
+	for k, v := range rawCfg {
+		if key, _ := k.(string); key == "EXTRA_CMDLINE" {
+			if val, ok := v.(string); ok {
+				cmdLineObj := parseCmdline(strings.TrimSpace(util.UnescapeKernelParams(string(val))))
+
+				return cmdLineObj
+			}
+		}
+	}
+	return nil
+}
+
 func readCmdline() map[interface{}]interface{} {
-	log.Debug("Reading config cmdline")
 	cmdLine, err := ioutil.ReadFile("/proc/cmdline")
 	if err != nil {
 		log.WithFields(log.Fields{"err": err}).Error("Failed to read kernel params")
@@ -163,8 +215,6 @@ func readCmdline() map[interface{}]interface{} {
 	if len(cmdLine) == 0 {
 		return nil
 	}
-
-	log.Debugf("Config cmdline %s", cmdLine)
 
 	cmdLineObj := parseCmdline(strings.TrimSpace(util.UnescapeKernelParams(string(cmdLine))))
 
@@ -212,6 +262,10 @@ func WriteToFile(data interface{}, filename string) error {
 		return err
 	}
 
+	if err := os.MkdirAll(filepath.Dir(filename), os.ModeDir|0700); err != nil {
+		return err
+	}
+
 	return util.WriteFileAtomic(filename, content, 400)
 }
 
@@ -221,6 +275,7 @@ func readConfigs(bytes []byte, substituteMetadataVars, returnErr bool, files ...
 	left := make(map[interface{}]interface{})
 	metadata := readMetadata()
 	for _, file := range files {
+		//os.Stderr.WriteString(fmt.Sprintf("READCONFIGS(%s)", file))
 		content, err := readConfigFile(file)
 		if err != nil {
 			if returnErr {
@@ -305,6 +360,7 @@ func readConfigFile(file string) ([]byte, error) {
 }
 
 func substituteVars(userDataBytes []byte, metadata datasource.Metadata) []byte {
+	// TODO: I think this currently does nothing - its hardcoded for COREOS env..
 	env := initialize.NewEnvironment("", "", "", "", metadata)
 	userData := env.Apply(string(userDataBytes))
 
