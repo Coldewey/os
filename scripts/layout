@@ -83,7 +83,7 @@ if [ -e ${DOWNLOADS}/kernel.tar.gz ]; then
         ## and then package it up cpio
         #cd ${BUILD}/kernel-fs/
         #echo Creating kernel ${ARTIFACTS}/linuxmods-${KERNEL_VERSION}
-        
+
         #if [ "$COMPRESS" == "" ]; then
         #    COMPRESS="gzip -1"
         #fi

@@ -3,6 +3,7 @@ set -e
 
 export ARCH=${ARCH:-"amd64"}
 BASE=images
+BACKUP_OS_REPO=${OS_REPO}
 
 source $(dirname $0)/version
 cd $(dirname $0)/..
@@ -12,15 +13,24 @@ rm -f dist/images
 touch dist/images
 
 for i in $BASE/[0-9]*; do
+    OS_REPO=${BACKUP_OS_REPO}
+
+    if [ -x ${i}/build_env ]; then
+        set -o allexport
+        source ${i}/build_env
+        set +o allexport
+    fi
+
     name="os-$(echo ${i} | cut -f2 -d-)"
     tag="${OS_REPO}/${name}:${VERSION}${SUFFIX}"
     echo "build-image: Building ${tag}"
+
     if [ -x ${i}/prebuild.sh ]; then
         ${i}/prebuild.sh
     fi
 
-    if dapper -d --build -f ${i}/Dockerfile -- -t rancher/${name} ${i}; then
-        docker tag rancher/${name} ${tag}
+    if dapper -d --build -f ${i}/Dockerfile -- -t ${OS_REPO}/${name} ${i}; then
+        docker tag ${OS_REPO}/${name} ${tag}
 	echo "${tag}" >> dist/images
     elif [ "$?" != "42" ]; then
         exit 1

@@ -1,4 +1,4 @@
-FROM rancher/os-base
+FROM coldewey/os-base
 COPY build/lsb-release /etc/
 RUN sed -i 's/rancher:!/rancher:*/g' /etc/shadow && \
     sed -i 's/docker:!/docker:*/g' /etc/shadow && \

@@ -1,4 +1,4 @@
-FROM rancher/os-rootfs
+FROM coldewey/os-rootfs
 RUN ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules
 # Cleanup Buildroot
 RUN rm /sbin/poweroff /sbin/reboot /sbin/halt && \
@@ -20,7 +20,8 @@ RUN rm /sbin/poweroff /sbin/reboot /sbin/halt && \
        /var/lock \
        /var/log \
        /var/run \
-       /var/spool && \
+       /var/spool \
+       /tmp/.X11-unix && \
     passwd -l root && \
     addgroup -g 1100 rancher && \
     addgroup -g 1101 docker && \
@@ -37,6 +38,7 @@ RUN sed -i s/"partx --update \"\$part\" \"\$dev\""/"partx --update --nr \"\$part
     sed -i -e 's/duid/clientid/g' /etc/dhcpcd.conf && \
     sed -i 1,10d /etc/rsyslog.conf && \
     echo "*.*                /var/log/syslog" >> /etc/rsyslog.conf
+#RUN touch /etc/machine-id
 # dump kernel log to console (but after we've finished booting)
 #    echo "kern.*                /dev/console" >> /etc/rsyslog.conf
 

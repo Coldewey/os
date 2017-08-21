@@ -1,3 +1,3 @@
-FROM rancher/os-base
+FROM coldewey/os-base
 COPY auto-format.sh /usr/sbin/
 COPY od-1m0 /

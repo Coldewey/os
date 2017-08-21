@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+   "math/rand"
+   "fmt"
 
 	"github.com/docker/libnetwork/resolvconf"
 	"github.com/rancher/os/log"
@@ -332,6 +334,18 @@ func createGroup() error {
 	return tryCreateFile("/etc/group", "root:x:0:\n")
 }
 
+func createMachineId() error {
+   machineId := "";
+
+   for len(machineId) < 32 {
+      machineId := fmt.Sprintf("%s%02X", machineId, rand.Intn(255))
+   }
+
+   tryCreateFile("/etc/machine-id", machineId)
+
+   return nil;
+}
+
 func setupNetworking(cfg *Config) error {
 	if cfg == nil {
 		return nil
@@ -577,6 +591,10 @@ func firstPrepare() error {
 	if err := createGroup(); err != nil {
 		return err
 	}
+
+   if err := createMachineId(); err != nil {
+      return err;
+   }
 
 	return nil
 }

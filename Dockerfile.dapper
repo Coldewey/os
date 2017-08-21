@@ -46,9 +46,9 @@ ARG DAPPER_HOST_ARCH=amd64
 ARG HOST_ARCH=${DAPPER_HOST_ARCH}
 ARG ARCH=${HOST_ARCH}
 
-ARG OS_REPO=rancher
-ARG HOSTNAME_DEFAULT=rancher
-ARG DISTRIB_ID=RancherOS
+ARG OS_REPO=coldewey
+ARG HOSTNAME_DEFAULT=c2flagranto
+ARG DISTRIB_ID=c2flagranto
 
 ARG DOCKER_VERSION=1.11.2
 ARG DOCKER_PATCH_VERSION=v${DOCKER_VERSION}-ros1
@@ -72,9 +72,9 @@ ARG OS_RELEASES_YML=https://releases.rancher.com/os
 
 ARG OS_SERVICES_REPO=https://raw.githubusercontent.com/${OS_REPO}/os-services
 ARG IMAGE_NAME=${OS_REPO}/os
-ARG DFS_IMAGE=${OS_REPO}/docker:v${DOCKER_VERSION}-2
+ARG DFS_IMAGE=rancher/docker:v${DOCKER_VERSION}-2
 
-ARG OS_BASE_URL_amd64=https://github.com/rancher/os-base/releases/download/v2016.08.1-2/os-base_amd64.tar.xz
+ARG OS_BASE_URL_amd64=http://172.16.26.198:5000/dist/artifacts/os-base_amd64.tar.xz
 ARG OS_BASE_URL_arm64=https://github.com/rancher/os-base/releases/download/v2016.08.1-2/os-base_arm64.tar.xz
 ARG OS_BASE_URL_arm=https://github.com/rancher/os-base/releases/download/v2016.08.1-3/os-base_arm.tar.xz
 ######################################################
@@ -118,7 +118,7 @@ ENV BUILD_DOCKER_URL=BUILD_DOCKER_URL_${ARCH} \
     SELINUX_POLICY_URL=${SELINUX_POLICY_URL}
 ENV PATH=${GOPATH}/bin:/usr/local/go/bin:$PATH
 
-RUN mkdir -p ${DOWNLOADS}
+RUN mkdir -p ${DOWNLOADS} ##  echo "cache-bust" &&
 
 # Download kernel
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
