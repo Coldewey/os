@@ -1,13 +1,13 @@
 ---
 title: Quick Start Guide for RancherOS
-layout: os-default
+
 
 ---
 
 ## Quick Start Guide
 ---
 
-If you have a specific RanchersOS machine requirements, please check out our [guides on running RancherOS]({{site.baseurl}}/os/running-rancheros/). With the rest of this guide, we'll start up a RancherOS using [Docker machine]({{site.baseurl}}/os/running-rancheros/workstation/docker-machine/) and show you some of what RancherOS can do.
+If you have a specific RanchersOS machine requirements, please check out our [guides on running RancherOS]({{page.osbaseurl}}/running-rancheros/). With the rest of this guide, we'll start up a RancherOS using [Docker machine]({{page.osbaseurl}}/running-rancheros/workstation/docker-machine/) and show you some of what RancherOS can do.
 
 ### Launching RancherOS using Docker Machine
 
@@ -50,7 +50,6 @@ dc2cafca3c69        rancher/os-syslog:v0.5.0    "/usr/sbin/entry.sh /"   18 seco
 Some containers are run at boot time, and others, such as the `console`, `docker`, etc. containers are always running.
 
 ## Using RancherOS
----
 
 ### Deploying a Docker Container
 
@@ -92,7 +91,7 @@ To run this container in System Docker use the following command:
 ```
 $ sudo system-docker run -d --net=host --name busydash husseingalal/busydash
 ```
-In the commad, we used `--net=host` to tell System Docker not to containerize the container's networking, and use the host’s networking instead. After running the container, you can see the monitoring server by accessing `http://<IP_OF_MACHINE`.
+In the commad, we used `--net=host` to tell System Docker not to containerize the container's networking, and use the host’s networking instead. After running the container, you can see the monitoring server by accessing `http://<IP_OF_MACHINE>`.
 
 ![System Docker Container]({{site.baseurl}}/img/os/Rancher_busydash.png)
 
@@ -116,13 +115,13 @@ ros version 0.0.1
 RancherOS state is controlled by a cloud config file. `ros` is used to edit the configuration of the system, to see for example the dns configuration of the system:
 
 ```
-$ sudo ros config get rancher.dns
+$ sudo ros config get rancher.network.dns.nameservers
 - 8.8.8.8
 - 8.8.4.4
 ```
 
 
-When using the native Busybox console, any changes to the console will be lost after reboots, only changes to `/home` or `/opt` will be persistent. You can use the `ros console switch` command to switch to a [persistent console]({{site.baseurl}}/os/configuration/custom-console/#console-persistence) and replace the native Busybox console. For example, to switch to the Ubuntu console:
+When using the native Busybox console, any changes to the console will be lost after reboots, only changes to `/home` or `/opt` will be persistent. You can use the `ros console switch` command to switch to a [persistent console]({{page.osbaseurl}}/configuration/custom-console/#console-persistence) and replace the native Busybox console. For example, to switch to the Ubuntu console:
 
 ```
 $ sudo ros console switch ubuntu
@@ -131,4 +130,3 @@ $ sudo ros console switch ubuntu
 ### Conclusion
 
 RancherOS is a simple Linux distribution ideal for running Docker.  By embracing containerization of system services and leveraging Docker for management, RancherOS hopes to provide a very reliable, and easy to manage OS for running containers.
-

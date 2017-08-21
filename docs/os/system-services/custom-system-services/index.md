@@ -1,11 +1,11 @@
 ---
 title: Custom System Services in RancherOS
-layout: os-default
+
 ---
 
 ## Custom System Services
 
-You can also create your own system service in [Docker Compose](https://docs.docker.com/compose/) format. After creating your own custom service, you can launch it in RancherOS in a couple of methods. The service could be directly added to the [cloud-config]({{site.baseurl}}/os/configuration/#cloud-config), or a `docker-compose.yml` file could be saved at a http(s) url location or in a specific directory of RancherOS.
+You can also create your own system service in [Docker Compose](https://docs.docker.com/compose/) format. After creating your own custom service, you can launch it in RancherOS in a couple of methods. The service could be directly added to the [cloud-config]({{page.osbaseurl}}/configuration/#cloud-config), or a `docker-compose.yml` file could be saved at a http(s) url location or in a specific directory of RancherOS.
 
 ### Launching Services through Cloud-Config
 
@@ -53,7 +53,7 @@ $ sudo ros service up service1 service2 service3
 
 The https://github.com/rancher/os-services repository is used for the built-in services, but you can create your own, and configure RancherOS to use it in addition (or to replace) it.
 
-The config settings to set the url in which `ros` should look for an `index.yml` file is: `rancher.repositories.<name>.url`. The `core` repository url is set when a release is made, and any other `<name>` url you add will be listed together when running `ros console list`, `ros servce list` or `ros engine list`
+The config settings to set the url in which `ros` should look for an `index.yml` file is: `rancher.repositories.<name>.url`. The `core` repository url is set when a release is made, and any other `<name>` url you add will be listed together when running `ros console list`, `ros service list` or `ros engine list`
 
 For example, in RancherOS v0.7.0, the `core` repository is set to `https://raw.githubusercontent.com/rancher/os-services/v0.7.0`.
 
@@ -103,6 +103,61 @@ Beware that there is an overly aggressive caching of yml files - so when you pus
 delete the files in `/var/lib/rancher/cache`.
 
 The image that you specify in the service yml file needs to be pullable - either from a private registry, or on the Docker Hub.
+
+### Service cron
+
+RancherOS has a system cron service based on [Container Crontab](https://github.com/rancher/container-crontab). This can be used to start, restart or stop system containers.
+
+To use this on your service, add a `cron.schedule` label to your service's description:
+
+```
+my-service:
+  image: namespace/my-service:v1.0.0
+  command: my-command
+  labels:
+    io.rancher.os.scope: "system"
+    cron.schedule: "0 * * * * ?"
+```
+
+For a cron service that can be used with user Docker containers, see the `crontab` system service.
+
+### Service log rotation
+
+RancherOS provides a built in `logrotate` container that makes use of logrotate(8) to rotate system logs. This is called on an hourly basis by the `system-cron` container.
+
+If you would like to make use of system log rotation for your system service, do the following.
+
+Add `system-volumes` to your service description's `volumes_from` section. You could also use a volume group containing `system-volumes` e.g. `all-volumes`.
+
+```
+my-service:
+  image: namespace/my-service:v1.0.0
+  command: my-command
+  labels:
+    io.rancher.os.scope: "system"
+  volumes_from:
+    - system-volumes
+```
+
+Next, add an entry point script to your image and copy your logrotate configs to `/etc/logrotate.d/` on startup.
+
+Example Dockerfile:
+```
+FROM alpine:latest
+COPY logrotate-myservice.conf entrypoint.sh /
+ENTRYPOINT ["/entrypoint.sh"]
+```
+
+Example entrypoint.sh (Ensure that this script has the execute bit set).
+```
+#!/bin/sh
+
+cp logrotate-myservice.conf /etc/logrotate.d/myservice
+
+exec "$@"
+```
+
+Your service's log rotation config will now be included when the system logrotate runs. You can view logrotate output with `system-docker logs logrotate`.
 
 ### Creating your own Console
 

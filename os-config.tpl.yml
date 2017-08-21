@@ -1,4 +1,5 @@
 rancher:
+  shutdown_timeout: 60
   environment:
     VERSION: {{.VERSION}}
     SUFFIX: {{.SUFFIX}}
@@ -14,6 +15,9 @@ rancher:
     network:
       dns:
         nameservers: [8.8.8.8, 8.8.4.4]
+  ssh:
+    daemon: true
+  hypervisor_service: true
   bootstrap:
     bootstrap:
       image: {{.OS_REPO}}/os-bootstrap:{{.VERSION}}{{.SUFFIX}}
@@ -31,6 +35,7 @@ rancher:
       - /usr/bin/ros:/usr/bin/ros:ro
       - /usr/share/ros:/usr/share/ros:ro
       - /var/lib/rancher:/var/lib/rancher:ro
+      - /var/log:/var/log
   cloud_init_services:
     cloud-init:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
@@ -54,6 +59,7 @@ rancher:
       - /usr/share/ros:/usr/share/ros:ro
       - /var/lib/rancher:/var/lib/rancher
       - /var/lib/rancher/conf:/var/lib/rancher/conf
+      - /var/log:/var/log
   bootstrap_docker:
     bridge: none
     storage_driver: overlay
@@ -161,6 +167,20 @@ rancher:
       read_only: true
       volumes:
       - /var/lib/docker:/var/lib/docker
+    logrotate:
+      image: {{.OS_REPO}}/os-logrotate:{{.VERSION}}{{.SUFFIX}}
+      command: /usr/sbin/logrotate -v /etc/logrotate.conf
+      labels:
+        io.rancher.os.createonly: "true"
+        io.rancher.os.scope: system
+        io.rancher.os.before: system-cron
+        cron.schedule: "@hourly"
+      uts: host
+      net: none
+      privileged: true
+      volumes_from:
+      - command-volumes
+      - system-volumes
     media-volumes:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
       command: echo
@@ -192,7 +212,7 @@ rancher:
       - /usr/bin/iptables:/sbin/iptables:ro
     ntp:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
-      command: ntpd --nofork -g
+      command: /bin/start_ntp.sh
       labels:
         io.rancher.os.scope: system
         io.rancher.os.after: network
@@ -215,7 +235,7 @@ rancher:
       - command-volumes
       - system-volumes
     syslog:
-      image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
+      image: {{.OS_REPO}}/os-syslog:{{.VERSION}}{{.SUFFIX}}
       command: rsyslogd -n
       labels:
         io.rancher.os.scope: system
@@ -227,6 +247,16 @@ rancher:
       volumes_from:
       - command-volumes
       - system-volumes
+    system-cron:
+      image: rancher/container-crontab:v0.1.0
+      labels:
+        io.rancher.os.scope: system
+      uts: host
+      net: none
+      privileged: true
+      restart: always
+      volumes:
+       - /var/run/system-docker.sock:/var/run/docker.sock
     system-volumes:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
       command: echo
@@ -242,6 +272,7 @@ rancher:
       - /etc/machine-id:/etc/machine-id
       - /etc/docker:/etc/docker
       - /etc/hosts:/etc/hosts
+      - /etc/logrotate.d:/etc/logrotate.d
       - /etc/resolv.conf:/etc/resolv.conf
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt.rancher
       - /etc/selinux:/etc/selinux

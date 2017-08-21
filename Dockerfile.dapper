@@ -1,8 +1,13 @@
 FROM ubuntu:16.04
 # FROM arm64=aarch64/ubuntu:16.04 arm=armhf/ubuntu:16.04
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# get the apt-cacher proxy set
+ARG APTPROXY=
+
+RUN echo "Acquire::http { Proxy \"$APTPROXY\"; };" >> /etc/apt/apt.conf.d/01proxy \
+    && cat /etc/apt/apt.conf.d/01proxy \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
         cpio \
@@ -19,6 +24,7 @@ RUN apt-get update && \
         libselinux1-dev \
         locales \
         module-init-tools \
+        mtools \
         openssh-client \
         pkg-config \
         qemu \
@@ -28,11 +34,12 @@ RUN apt-get update && \
         syslinux-common \
         vim \
         wget \
-        xorriso
+        xorriso \
+	telnet
 
 ########## Dapper Configuration #####################
 
-ENV DAPPER_ENV VERSION DEV_BUILD RUNTEST DEBUG
+ENV DAPPER_ENV VERSION DEV_BUILD RUNTEST DEBUG APTPROXY ENGINE_REGISTRY_MIRROR
 ENV DAPPER_DOCKER_SOCKET true
 ENV DAPPER_SOURCE /go/src/github.com/rancher/os
 ENV DAPPER_OUTPUT ./bin ./dist ./build/initrd ./build/kernel
@@ -56,9 +63,9 @@ ARG DOCKER_BUILD_VERSION=1.10.3
 ARG DOCKER_BUILD_PATCH_VERSION=v${DOCKER_BUILD_VERSION}-ros1
 ARG SELINUX_POLICY_URL=https://github.com/rancher/refpolicy/releases/download/v0.0.3/policy.29
 
-ARG KERNEL_VERSION_amd64=4.9.24-rancher
+ARG KERNEL_VERSION_amd64=4.9.44-rancher
 ARG KERNEL_URL_amd64=https://github.com/rancher/os-kernel/releases/download/v${KERNEL_VERSION_amd64}/linux-${KERNEL_VERSION_amd64}-x86.tar.gz
-ARG KERNEL_URL_arm64=https://github.com/imikushin/os-kernel/releases/download/Estuary-4.4.0-arm64.8/linux-4.4.0-rancher-arm64.tar.gz
+#ARG KERNEL_URL_arm64=https://github.com/imikushin/os-kernel/releases/download/Estuary-4.4.0-arm64.8/linux-4.4.0-rancher-arm64.tar.gz
 
 ARG DOCKER_URL_amd64=https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}.tgz
 ARG DOCKER_URL_arm=https://github.com/rancher/docker/releases/download/${DOCKER_PATCH_VERSION}/docker-${DOCKER_VERSION}_arm.tgz
@@ -74,9 +81,9 @@ ARG OS_SERVICES_REPO=https://raw.githubusercontent.com/${OS_REPO}/os-services
 ARG IMAGE_NAME=${OS_REPO}/os
 ARG DFS_IMAGE=rancher/docker:v${DOCKER_VERSION}-2
 
+ARG OS_BASE_URL_arm64=https://github.com/rancher/os-base/releases/download/v2017.02.5-1/os-base_arm64.tar.xz
+ARG OS_BASE_URL_arm=https://github.com/rancher/os-base/releases/download/v2017.02.5-1/os-base_arm.tar.xz
 ARG OS_BASE_URL_amd64=http://172.16.26.198:5000/dist/artifacts/os-base_amd64.tar.xz
-ARG OS_BASE_URL_arm64=https://github.com/rancher/os-base/releases/download/v2016.08.1-2/os-base_arm64.tar.xz
-ARG OS_BASE_URL_arm=https://github.com/rancher/os-base/releases/download/v2016.08.1-3/os-base_arm.tar.xz
 ######################################################
 
 # Set up environment and export all ARGS as ENV

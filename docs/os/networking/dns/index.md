@@ -1,11 +1,12 @@
 ---
 title: Configuring DNS in RancherOS
-layout: os-default
+
 redirect_from:
-  - os/configuration/networking/#dns
+  - os/v1.1/en/configuration/networking/#dns
 ---
 
 ## DNS
+---
 
 If you wanted to configure the DNS through the cloud config file, you'll need to place DNS configurations within the `rancher` key.
 

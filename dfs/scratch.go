@@ -266,15 +266,21 @@ func defaultFolders(folders ...string) error {
 }
 
 func CopyFile(src, folder, name string) error {
+	return CopyFileOverwrite(src, folder, name, false)
+}
+
+func CopyFileOverwrite(src, folder, name string, overwrite bool) error {
 	if _, err := os.Lstat(src); os.IsNotExist(err) {
 		log.Debugf("Not copying %s, does not exists", src)
 		return nil
 	}
 
 	dst := path.Join(folder, name)
-	if _, err := os.Lstat(dst); err == nil {
-		log.Debugf("Not copying %s => %s already exists", src, dst)
-		return nil
+	if !overwrite {
+		if _, err := os.Lstat(dst); err == nil {
+			log.Debugf("Not copying %s => %s already exists", src, dst)
+			return nil
+		}
 	}
 
 	if err := createDirs(folder); err != nil {
@@ -365,6 +371,7 @@ ff02::2    ip6-allrouters
 127.0.1.1       `+hostname)
 
 	if len(cfg.DNSConfig.Nameservers) != 0 {
+		log.Infof("Writing resolv.conf (%v) %v", cfg.DNSConfig.Nameservers, cfg.DNSConfig.Search)
 		if _, err := resolvconf.Build("/etc/resolv.conf", cfg.DNSConfig.Nameservers, cfg.DNSConfig.Search, nil); err != nil {
 			return err
 		}
@@ -380,7 +387,7 @@ ff02::2    ip6-allrouters
 					Bridge:  "true",
 				},
 			},
-		}); err != nil {
+		}, false, false); err != nil {
 			return err
 		}
 	}

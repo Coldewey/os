@@ -1,6 +1,9 @@
 package network
 
 import (
+	"golang.org/x/net/context"
+
+	"github.com/rancher/os/docker"
 	"github.com/rancher/os/log"
 
 	"github.com/docker/libnetwork/resolvconf"
@@ -14,6 +17,16 @@ func Main() {
 
 	cfg := config.LoadConfig()
 	ApplyNetworkConfig(cfg)
+
+	log.Infof("Restart syslog")
+	client, err := docker.NewSystemClient()
+	if err != nil {
+		log.Error(err)
+	}
+
+	if err := client.ContainerRestart(context.Background(), "syslog", 10); err != nil {
+		log.Error(err)
+	}
 
 	select {}
 }
@@ -29,6 +42,7 @@ func ApplyNetworkConfig(cfg *config.CloudConfig) {
 	}
 
 	// TODO: don't write to the file if nameservers is still empty
+	log.Infof("Writing resolv.conf (%v) %v", nameservers, search)
 	if _, err := resolvconf.Build("/etc/resolv.conf", nameservers, search, nil); err != nil {
 		log.Error(err)
 	}
@@ -37,14 +51,8 @@ func ApplyNetworkConfig(cfg *config.CloudConfig) {
 		log.Error(err)
 	}
 
-	if err := netconf.ApplyNetworkConfigs(&cfg.Rancher.Network); err != nil {
-		log.Error(err)
-	}
-
-	// TODO: seems wrong to do this outside netconf
 	userSetHostname := cfg.Hostname != ""
-	log.Infof("Apply Network Config RunDhcp")
-	if err := netconf.RunDhcp(&cfg.Rancher.Network, !userSetHostname, !userSetDNS); err != nil {
+	if err := netconf.ApplyNetworkConfigs(&cfg.Rancher.Network, userSetHostname, userSetDNS); err != nil {
 		log.Error(err)
 	}
 

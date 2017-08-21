@@ -1,6 +1,6 @@
 ---
 title: Booting RancherOS with iPXE
-layout: os-default
+
 
 ---
 ## Booting RancherOS via iPXE
@@ -48,18 +48,24 @@ When this service is run, the `EXTRA_CMDLINE` will be set.
 
 ### cloud-init Datasources
 
-Valid [datasources](https://github.com/rancher/os/blob/3338c4ac63597940bcde7e6005f1cc09287062a2/cmd/cloudinit/cloudinit.go#L378) for RancherOS.
+Valid cloud-init datasources for RancherOS.
 
-| type | default |  
-|---|---|
-| ec2 | DefaultAddress | 
-| file | path |
-| url | url |
-| cmdline |  |
-| configdrive |  |
-| digitalocean | DefaultAddress |
-| gce |  |
+| type | default |  |
+|---|---|--|
+| ec2 | ec2's DefaultAddress |  |
+| file | path |  |
+| cmdline | /media/config-2 |  |
+| configdrive |  |  |
+| digitalocean | DefaultAddress |  |
+| ec2 | DefaultAddress |  |
+| file | path |  |
+| gce |  |  |
+| packet | DefaultAddress |  |
+| url | url |  |
+| vmware |  | set `guestinfo` cloud-init or interface data as per [VMware ESXi]({{page.osbaseurl}}/cloud/vmware-esxi) |
+| * | This will add ["configdrive", "vmware", "ec2", "digitalocean", "packet", "gce"] into the list of datasources to try |  |
 
 ### Cloud-Config
- 
-When booting via iPXE, RancherOS can be configured using a [cloud-config file]({{site.baseurl}}/os/configuration/#cloud-config).
+
+When booting via iPXE, RancherOS can be configured using a [cloud-config file]({{page.osbaseurl}}/configuration/#cloud-config).
+

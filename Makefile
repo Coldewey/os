@@ -1,4 +1,4 @@
-TARGETS := $(shell ls scripts | grep -vE 'clean|run|help|docs|release')
+TARGETS := $(shell ls scripts | grep -vE 'clean|run|help|docs|release|build-moby|run-moby')
 
 .dapper:
 	@echo Downloading dapper
@@ -28,6 +28,12 @@ run: build/initrd/.id .dapper
 docs:
 	./scripts/docs
 
+build-moby:
+	./scripts/build-moby
+
+run-moby:
+	./scripts/run-moby
+
 shell-bind: .dapper
 	./.dapper -m bind -s
 
@@ -43,19 +49,28 @@ release-build:
 itest:
 	mkdir -p dist
 	./.dapper integration-test 2>&1 | tee dist/itest.log
+	grep FAIL dist/itest.log || true
 
 qcows:
 	cp dist/artifacts/rancheros.iso scripts/images/openstack/
 	cd scripts/images/openstack && \
+		APPEND="console=tty1 console=ttyS0,115200n8 printk.devkmsg=on rancher.autologin=ttyS0" \
 		NAME=openstack ../../../.dapper
 	cd scripts/images/openstack && \
-		APPEND="console=tty1 rancher.debug=true printk.devkmsg=on notsc clocksource=kvm-clock rancher.network.interfaces.eth0.ipv4ll rancher.cloud_init.datasources=[digitalocean] rancher.autologin=tty1 rancher.autologin=ttyS0" NAME=digitalocean ../../../.dapper
-	cp ./scripts/images/openstack/dist/*.img dist/
+		APPEND="console=tty1 rancher.debug=true printk.devkmsg=on notsc clocksource=kvm-clock rancher.network.interfaces.eth0.ipv4ll rancher.cloud_init.datasources=[digitalocean] rancher.autologin=tty1 rancher.autologin=ttyS0" \
+		NAME=digitalocean ../../../.dapper
+	cp ./scripts/images/openstack/dist/*.img dist/artifacts/
 
-rpi: release
+rpi:
 	# scripts/images/raspberry-pi-hypriot/dist/rancheros-raspberry-pi.zip
 	cp dist/artifacts/rootfs_arm.tar.gz scripts/images/raspberry-pi-hypriot/
 	cd scripts/images/raspberry-pi-hypriot/ \
+		&& ../../../.dapper
+
+rpi64:
+	# scripts/images/raspberry-pi-hypriot64/dist/rancheros-raspberry-pi.zip
+	cp dist/artifacts/rootfs_arm64.tar.gz scripts/images/raspberry-pi-hypriot64/
+	cd scripts/images/raspberry-pi-hypriot64/ \
 		&& ../../../.dapper
 
 help:
