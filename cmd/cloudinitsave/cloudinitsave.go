@@ -39,6 +39,7 @@ import (
 	"github.com/rancher/os/config/cloudinit/datasource/metadata/packet"
 	"github.com/rancher/os/config/cloudinit/datasource/proccmdline"
 	"github.com/rancher/os/config/cloudinit/datasource/url"
+	"github.com/rancher/os/config/cloudinit/datasource/vmware"
 	"github.com/rancher/os/config/cloudinit/pkg"
 	"github.com/rancher/os/log"
 	"github.com/rancher/os/netconf"
@@ -65,20 +66,21 @@ func Main() {
 }
 
 func saveCloudConfig() error {
-	log.Debugf("SaveCloudConfig")
+	log.Infof("SaveCloudConfig")
 
 	cfg := rancherConfig.LoadConfig()
 	log.Debugf("init: SaveCloudConfig(pre ApplyNetworkConfig): %#v", cfg.Rancher.Network)
 	network.ApplyNetworkConfig(cfg)
 
-	log.Debugf("datasources that will be consided: %#v", cfg.Rancher.CloudInit.Datasources)
-	dss := getDatasources(cfg)
+	log.Infof("datasources that will be consided: %#v", cfg.Rancher.CloudInit.Datasources)
+	dss := getDatasources(cfg.Rancher.CloudInit.Datasources)
 	if len(dss) == 0 {
 		log.Errorf("currentDatasource - none found")
 		return nil
 	}
 
-	selectDatasource(dss)
+	foundDs := selectDatasource(dss)
+	log.Infof("Cloud-init datasource that was used: %s", foundDs)
 
 	// Apply any newly detected network config.
 	cfg = rancherConfig.LoadConfig()
@@ -216,10 +218,10 @@ func fetchAndSave(ds datasource.Datasource) error {
 
 // getDatasources creates a slice of possible Datasources for cloudinit based
 // on the different source command-line flags.
-func getDatasources(cfg *rancherConfig.CloudConfig) []datasource.Datasource {
+func getDatasources(datasources []string) []datasource.Datasource {
 	dss := make([]datasource.Datasource, 0, 5)
 
-	for _, ds := range cfg.Rancher.CloudInit.Datasources {
+	for _, ds := range datasources {
 		parts := strings.SplitN(ds, ":", 2)
 
 		root := ""
@@ -228,6 +230,8 @@ func getDatasources(cfg *rancherConfig.CloudConfig) []datasource.Datasource {
 		}
 
 		switch parts[0] {
+		case "*":
+			dss = append(dss, getDatasources([]string{"configdrive", "vmware", "ec2", "digitalocean", "packet", "gce"})...)
 		case "ec2":
 			dss = append(dss, ec2.NewDatasource(root))
 		case "file":
@@ -243,9 +247,10 @@ func getDatasources(cfg *rancherConfig.CloudConfig) []datasource.Datasource {
 				dss = append(dss, proccmdline.NewDatasource())
 			}
 		case "configdrive":
-			if root != "" {
-				dss = append(dss, configdrive.NewDatasource(root))
+			if root == "" {
+				root = "/media/config-2"
 			}
+			dss = append(dss, configdrive.NewDatasource(root))
 		case "digitalocean":
 			// TODO: should we enableDoLinkLocal() - to avoid the need for the other kernel/oem options?
 			dss = append(dss, digitalocean.NewDatasource(root))
@@ -253,6 +258,12 @@ func getDatasources(cfg *rancherConfig.CloudConfig) []datasource.Datasource {
 			dss = append(dss, gce.NewDatasource(root))
 		case "packet":
 			dss = append(dss, packet.NewDatasource(root))
+		case "vmware":
+			// made vmware datasource dependent on detecting vmware independently, as it crashes things otherwise
+			v := vmware.NewDatasource(root)
+			if v != nil {
+				dss = append(dss, v)
+			}
 		}
 	}
 
@@ -266,7 +277,7 @@ func enableDoLinkLocal() {
 				IPV4LL: true,
 			},
 		},
-	})
+	}, false, false)
 	if err != nil {
 		log.Errorf("Failed to apply link local on eth0: %v", err)
 	}
@@ -289,7 +300,7 @@ func selectDatasource(sources []datasource.Datasource) datasource.Datasource {
 
 			duration := datasourceInterval
 			for {
-				log.Infof("cloud-init: Checking availability of %q\n", s.Type())
+				log.Infof("cloud-init: Checking availability of %q", s.Type())
 				if s.IsAvailable() {
 					log.Infof("cloud-init: Datasource available: %s", s)
 					ds <- s

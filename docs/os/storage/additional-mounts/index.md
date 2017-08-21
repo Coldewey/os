@@ -1,13 +1,14 @@
 ---
 title: Additional Mounts in RancherOS
-layout: os-default
+
 redirect_from:
-  - os/configuration/additional-mounts/
+  - os/v1.1/en/configuration/additional-mounts/
 ---
 
 ## Additional Mounts
+---
 
-Additional mounts can be specified as part of your [cloud-config]({{site.baseurl}}/os/configuration/#cloud-config). These mounts are applied within the console container. Here's a simple example that mounts `/dev/vdb` to `/mnt/s`.
+Additional mounts can be specified as part of your [cloud-config]({{page.osbaseurl}}/configuration/#cloud-config). These mounts are applied within the console container. Here's a simple example that mounts `/dev/vdb` to `/mnt/s`.
 
 ```yaml
 #cloud-config
@@ -23,6 +24,6 @@ RancherOS uses the mount syscall rather than the `mount` command behind the scen
 
 ### Shared Mounts
 
-By default, `/media` and `/mnt` are mounted as shared in the console container. This means that mounts within these directories will propogate to the host as well as other system services that mount these folders as shared.
+By default, `/media` and `/mnt` are mounted as shared in the console container. This means that mounts within these directories will propagate to the host as well as other system services that mount these folders as shared.
 
 See [here](https://www.kernel.org/doc/Documentation/filesystems/sharedsubtree.txt) for a more detailed overview of shared mounts and their properties.

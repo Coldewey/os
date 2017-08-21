@@ -1,13 +1,13 @@
 ---
 title: Using Docker Machine to run RancherOS
-layout: os-default
+
 
 ---
 
 ## Docker Machine
 ---
 
-Before we get started, you'll need to make sure that you have docker machine installed. Download it directly from the docker machine [releases](https://github.com/docker/machine/releases).  
+Before we get started, you'll need to make sure that you have docker machine installed. Download it directly from the docker machine [releases](https://github.com/docker/machine/releases).
 
 > **Note:** If you create a RancherOS instance using Docker Machine, you will not be able to upgrade your version of RancherOS.
 
@@ -15,7 +15,7 @@ Before we get started, you'll need to make sure that you have docker machine ins
 
 Get the latest `rancheros.iso` artifact from the RancherOS [releases](https://github.com/rancher/os/releases).
 
-### Using Docker Machine  
+### Using Docker Machine
 
 You can use Docker Machine to launch VMs for various providers. Currently only VirtualBox and AWS are supported.
 
@@ -55,7 +55,7 @@ Logging into RancherOS follows the standard Docker Machine commands. To login in
 $ docker-machine ssh <MACHINE-NAME>
 ```
 
-You'll be logged into RancherOS and can start exploring the OS, This will log you into the RancherOS VM. You'll then be able to explore the OS by [adding system services]({{site.baseurl}}/os/system-services/adding-system-services/), [customizing the configuration]({{site.baseurl}}/os/configuration/), and launching containers.
+You'll be logged into RancherOS and can start exploring the OS, This will log you into the RancherOS VM. You'll then be able to explore the OS by [adding system services]({{page.osbaseurl}}/system-services/adding-system-services/), [customizing the configuration]({{page.osbaseurl}}/configuration/), and launching containers.
 
 If you want to exit out of RancherOS, you can exit by pressing `Ctrl+D`.
 
