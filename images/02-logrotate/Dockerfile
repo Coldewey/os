@@ -1,4 +1,4 @@
-FROM rancher/os-base
+FROM coldewey/os-base
 COPY logrotate.d/ /usr/share/logrotate/logrotate.d/
 COPY logrotate.conf /etc/logrotate.conf
 COPY entrypoint.sh /usr/bin/entrypoint.sh

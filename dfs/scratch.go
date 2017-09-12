@@ -2,16 +2,16 @@ package dfs
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
 	"strings"
 	"syscall"
-   "math/rand"
-   "fmt"
 
 	"github.com/docker/libnetwork/resolvconf"
 	"github.com/rancher/os/log"
@@ -340,16 +340,16 @@ func createGroup() error {
 	return tryCreateFile("/etc/group", "root:x:0:\n")
 }
 
-func createMachineId() error {
-   machineId := "";
+func createMachineID() error {
+	machineID := ""
 
-   for len(machineId) < 32 {
-      machineId := fmt.Sprintf("%s%02X", machineId, rand.Intn(255))
-   }
+	for len(machineID) < 32 {
+		machineID = fmt.Sprintf("%s%02X", machineID, rand.Intn(255))
+	}
 
-   tryCreateFile("/etc/machine-id", machineId)
+	tryCreateFile("/etc/machine-id", machineID)
 
-   return nil;
+	return nil
 }
 
 func setupNetworking(cfg *Config) error {
@@ -599,15 +599,14 @@ func firstPrepare() error {
 		return err
 	}
 
-   if err := createMachineId(); err != nil {
-      return err;
-   }
+	if err := createMachineID(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func secondPrepare(config *Config, docker string, args ...string) error {
-
 	if err := setupNetworking(config); err != nil {
 		return err
 	}

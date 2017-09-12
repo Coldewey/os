@@ -131,7 +131,7 @@ rancher:
       labels:
         io.rancher.os.createonly: "true"
         io.rancher.os.scope: system
-      log_driver: json-file
+      log_driver: json-filecommand
       net: none
       privileged: true
       read_only: true
@@ -194,6 +194,17 @@ rancher:
       volumes:
       - /media:/media:shared
       - /mnt:/mnt:shared
+    xauth:
+      image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
+      command: create_xauth.sh
+      labels:
+        io.rancher.os.scope: system
+        io.rancher.os.before: network
+      net: none
+      privileged: true
+      volumes_from:
+      - command-volumes
+      - system-volumes
     network:
       image: {{.OS_REPO}}/os-base:{{.VERSION}}{{.SUFFIX}}
       command: netconf
@@ -305,6 +316,50 @@ rancher:
         io.rancher.os.detach: "true"
         io.rancher.os.scope: system
         io.rancher.os.after: udev-cold
+      net: host
+      uts: host
+      privileged: true
+      restart: always
+      volumes_from:
+      - command-volumes
+      - system-volumes
+    xorg:
+      image: {{.OS_REPO}}/os-xorg:{{.VERSION}}{{.SUFFIX}}
+      command: display
+      labels:
+        io.rancher.os.detach: "true"
+        io.rancher.os.scope: "system"
+        io.rancher.os.after: udev
+      net: host
+      uts: host
+      privileged: true
+      restart: always
+      volumes:
+      - /tmp:/tmp
+      volumes_from:
+      - command-volumes
+      - system-volumes
+    egtouchd:
+      image: {{.OS_REPO}}/os-egtouchd:{{.VERSION}}{{.SUFFIX}}
+      command: touch-driver
+      labels:
+        io.rancher.os.detach: "true"
+        io.rancher.os.scope: "system"
+        io.rancher.os.after: xorg
+      net: host
+      uts: host
+      privileged: true
+      restart: on-failure
+      volumes_from:
+      - command-volumes
+      - system-volumes
+    frontend:
+      image: {{.OS_REPO}}/os-frontend:{{.VERSION}}{{.SUFFIX}}
+      command: frontend
+      labels:
+        io.rancher.os.detach: "true"
+        io.rancher.os.scope: "system"
+        io.rancher.os.after: xorg
       net: host
       uts: host
       privileged: true

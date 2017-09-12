@@ -16,4 +16,9 @@ ENV XAUTHORITY=/var/run/xauth
 COPY prompt.sh /etc/profile.d/
 COPY frontend.sh /usr/bin/frontend
 
-RUN npm install -g electron
+RUN mkdir /app
+
+WORKDIR /app
+
+RUN npm install electron
+RUN npm cache clean --force
