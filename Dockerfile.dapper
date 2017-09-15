@@ -17,6 +17,7 @@ RUN echo "Acquire::http { Proxy \"$APTPROXY\"; };" >> /etc/apt/apt.conf.d/01prox
         genisoimage \
         gettext \
         git \
+        grub-efi \
         isolinux \
         less \
         libblkid-dev \

@@ -42,12 +42,12 @@ RUN sed -i s/"partx --update \"\$part\" \"\$dev\""/"partx --update --nr \"\$part
     echo "*.*                /var/log/syslog" >> /etc/rsyslog.conf
 
 ENV XSERVER_AUTHFILE="/var/run/xauth"
-RUN echo 'ACTION=="add",' \
-    'ATTRS{bInterfaceProtocol}=="02",' \
-    'ATTRS{bInterfaceClass}=="03",' \
-    'ATTRS{bInterfaceSubClass}=="01",' \
-    'ENV{REMOVE_CMD}="system-docker exec xorg sh -C '"'XAUTHORITY=$XSERVER_AUTHFILE DISPLAY=:0 /usr/bin/xinput -cursor [transparent cursor]'"'",' \
-    'RUN+="system-docker exec xorg sh -C '"'XAUTHORITY=$XSERVER_AUTHFILE DISPLAY=:0 /usr/bin/xinput -cursor [normal cursor]'"'"' > /etc/udev/rules.d/99-touch-cursor.rules
+#RUN echo 'ACTION=="add",' \
+#    'ATTRS{bInterfaceProtocol}=="02",' \
+#    'ATTRS{bInterfaceClass}=="03",' \
+#    'ATTRS{bInterfaceSubClass}=="01",' \
+#    'ENV{REMOVE_CMD}="/usr/bin/system-docker exec xorg sh -C '"'XAUTHORITY=$XSERVER_AUTHFILE DISPLAY=:0 /usr/bin/xinput -cursor [transparent cursor]'"'",' \
+#    'RUN+="/usr/bin/system-docker exec xorg sh -C '"'XAUTHORITY=$XSERVER_AUTHFILE DISPLAY=:0 /usr/bin/xinput -cursor [normal cursor]'"'"' > /etc/udev/rules.d/99-touch-cursor.rules
 #RUN touch /etc/machine-id
 # dump kernel log to console (but after we've finished booting)
 #    echo "kern.*                /dev/console" >> /etc/rsyslog.conf

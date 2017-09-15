@@ -106,6 +106,21 @@ while [ "$#" -gt 0 ]; do
         --kvm)
             KVM=1
             ;;
+        --efi)
+            # set where our EFI firmware binary is
+            EFIFIRMWARE="./build/OVMF.fd"
+            # create the command-line to pass to qemu
+            EFI="--bios $EFIFIRMWARE"
+            # if the firmware does not yet exist, download it
+            if [[ ! -e "$EFIFIRMWARE" ]]; then
+                echo "Downloading OVMF EFI firmware"
+                # because unzip does not support streaming from stdin...
+                curl --location http://downloads.sourceforge.net/project/edk2/OVMF/OVMF-X64-r15214.zip > ./build/ovmf.zip
+                unzip ./build/ovmf.zip -d ./build OVMF.fd
+                rm -f ./build/ovmf.zip
+                echo "Download OVMF EFI firmware complete"
+            fi
+            ;;
         --no-format)
             FORMAT=0
             ;;
@@ -321,6 +336,7 @@ if [ "$QEMU" == "1" ]; then
             ${CPU} \
             ${machine["$ARCH"]} \
             -m $MEMORY \
+            ${EFI} \
             ${NETWORK} \
             $(eval "${hd["$ARCH"]} ${HD}") \
             ${SECOND_DRIVE_ENABLE} \
@@ -349,6 +365,7 @@ elif [ "$BOOT_ISO" == "1" ] ||
             ${CPU} \
             ${machine["$ARCH"]} \
             -m $MEMORY \
+            ${EFI} \
             ${NETWORK} \
             $(eval "${hd["$ARCH"]} ${HD}") \
             ${SECOND_DRIVE_ENABLE} \

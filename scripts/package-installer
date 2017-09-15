@@ -29,12 +29,17 @@ popd
 DIST=$(pwd)/dist
 echo "mkdir -p ${DIST}/boot/isolinux/"
 mkdir -p ${DIST}/boot/isolinux/
+mkdir -p ${DIST}/boot/grub
+mkdir -p ${DIST}/boot/grub/themes/c2software/
+
 cat scripts/isolinux.cfg | envsubst >         ${DIST}/boot/isolinux/isolinux.cfg
 cat scripts/isolinux_label.cfg | LABEL=${VERSION} envsubst >   ${DIST}/boot/linux-current.cfg
 #cat scripts/isolinux_label.cfg | LABEL=debug APPEND="rancher.debug=true" envsubst >   ${DIST}/boot/linux-previous.cfg
 cat scripts/global.cfg | LABEL=${VERSION} envsubst >   ${DIST}/boot/global.cfg
+cat scripts/grub.cfg | envsubst > ${DIST}/boot/grub/grub.cfg
 cp scripts/rancher.png ${DIST}/boot/
-
+cp -r /usr/share/grub/* ${DIST}/boot/grub
+cp -r scripts/grub_theme/* ${DIST}/boot/grub/themes/c2software/
 
 mkdir -p ./scripts/installer/build/boot
 cp ./bin/ros ./scripts/installer/build
