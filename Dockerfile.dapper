@@ -86,6 +86,9 @@ ARG DFS_IMAGE=rancher/docker:v${DOCKER_VERSION}-2
 ARG OS_BASE_URL_arm64=https://github.com/rancher/os-base/releases/download/v2017.02.5-1/os-base_arm64.tar.xz
 ARG OS_BASE_URL_arm=https://github.com/rancher/os-base/releases/download/v2017.02.5-1/os-base_arm.tar.xz
 ARG OS_BASE_URL_amd64=https://github.com/Coldewey/os-base/releases/download/v2017.09.8-1/os-base_amd64.tar.xz
+ARG OS_BASE_URL_arm64=https://github.com/Coldewey/os-base/releases/download/2017.09-2/os-base_arm64.tar.xz
+ARG OS_BASE_URL_arm=https://github.com/Coldewey/os-base/releases/download/2017.09-2/os-base_arm.tar.xz
+ARG OS_BASE_URL_amd64=https://github.com/Coldewey/os-base/releases/download/2017.09-2/os-base_amd64.tar.xz
 ######################################################
 
 # Set up environment and export all ARGS as ENV
